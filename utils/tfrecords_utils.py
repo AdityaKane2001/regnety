@@ -5,6 +5,7 @@ import os
 import random
 import json
 import argparse
+import math
 from image_utils import *
 
 def _bytes_feature(value):
@@ -53,7 +54,7 @@ def get_files(data_dir):
   random.shuffle(all_indexes)
   
   all_images = [all_images[i] for i in all_indexes]
-  all_synsets = [all_synsets[i] for i in all_indexes]
+  all_synsets = [all_synsets[i][1:]+'-n' for i in all_indexes]
 
   labels_dict = get_synset_labels('/content/regnety/config/imagenet_synset_to_human.json')
 
@@ -64,20 +65,25 @@ def get_files(data_dir):
 
 def make_image(filepath):
 
-  with tf.io.gfile.GFile(filepath,'r') as f:
+  with tf.io.gfile.GFile(filepath,'rb') as f:
     image_str = f.read()
   
-  if image_utils.is_png(filepath):
-    image_str = image_utils.png_to_jpeg(image_str)
+  if is_png(filepath):
+    image_str = png_to_jpeg(image_str)
   
-  if image_utils.is_cmyk(filepath):
-    image_str = image_utils.cmyk_to_rgb(image_str)
+  if is_cmyk(filepath):
+    image_str = cmyk_to_rgb(image_str)
   
   image_tensor = tf.io.decode_jpeg(image_str)
 
   height = image_tensor.shape[0]
   width = image_tensor.shape[1]
 
+  if image_tensor.shape[2] == 1:
+    image_tensor = tf.image.grayscale_to_rgb(image_tensor)
+    image_str = tf.io.encode_jpeg(image_tensor)
+
+  
   assert len(image_tensor.shape) == 3
   assert image_tensor.shape[2] == 3
 
@@ -86,13 +92,13 @@ def make_image(filepath):
 
 def make_example(image_str,height,width,filepath,label,synset):
 
-  example = tf.train.Example(tf.train.Features(feature={
+  example = tf.train.Example(features = tf.train.Features(feature={
     'image' : _bytes_feature(image_str),
     'height' : _int64_feature(height),
     'width' : _int64_feature(width),
-    'filename' : _bytes_feature(os.path.basename(os.path.dirname(filepath))),
+    'filename' : _bytes_feature(bytes(os.path.basename(os.path.dirname(filepath)),encoding='utf8')),
     'label' : _int64_feature(label),
-    'synset' : _bytes_feature(synset)
+    'synset' : _bytes_feature(bytes(synset,encoding='utf8'))
   }))
 
   return example
@@ -126,7 +132,7 @@ def make_tfrecs(dataset_base_dir = None , #example: home/imagenet/train
   chunksize = int(math.ceil(len(images) / num_shards))
 
   for shard in range(num_shards):
-    chunk_files = filenames[shard * chunksize : (shard + 1) * chunksize]
+    chunk_files = images[shard * chunksize : (shard + 1) * chunksize]
     chunk_synsets = synsets[shard * chunksize : (shard + 1) * chunksize]
     chunk_labels = labels[shard * chunksize : (shard + 1) * chunksize]
 
