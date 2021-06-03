@@ -10,7 +10,7 @@ import os
 def is_png(filename):
   return 'n02105855_2933.JPEG' in filename
 
-def is_cymk(filename);
+def is_cmyk(filename):
   blacklist = set(['n01739381_1309.JPEG', 'n02077923_14822.JPEG',
                    'n02447366_23489.JPEG', 'n02492035_15739.JPEG',
                    'n02747177_10752.JPEG', 'n03018349_4028.JPEG',
