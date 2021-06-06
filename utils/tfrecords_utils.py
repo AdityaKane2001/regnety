@@ -6,7 +6,7 @@ import random
 import json
 import argparse
 import math
-from image_utils import *
+from .image_utils import *
 
 def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
@@ -45,7 +45,7 @@ def get_synset_labels(filepath):
 
 
 
-def get_files(data_dir):
+def get_files(data_dir, synset_filepath):
   all_images = tf.io.gfile.glob(os.path.join(data_dir,'*','*.JPEG'))
   all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
@@ -56,7 +56,7 @@ def get_files(data_dir):
   all_images = [all_images[i] for i in all_indexes]
   all_synsets = [all_synsets[i][1:]+'-n' for i in all_indexes]
 
-  labels_dict = get_synset_labels('/content/regnety/config/imagenet_synset_to_human.json')
+  labels_dict = get_synset_labels(synset_filepath)
 
   all_labels_int = [labels_dict[i][0] for i in all_synsets]
 
@@ -123,11 +123,12 @@ def make_single_tfrecord(chunk_files,chunk_synsets,chunk_labels,output_filepath)
 def make_tfrecs(dataset_base_dir = None , #example: home/imagenet/train
                 output_dir = None, #example: home/imagenet_tfrecs 
                 file_prefix = None, #example: file_prefix = 'train' makes all files look like: train_0000_of_num_shards 
+                synset_filepath = None,
                 num_shards = 10):
 
   """Driver function"""
 
-  images, labels, synsets = get_files(dataset_base_dir)
+  images, labels, synsets = get_files(dataset_base_dir, synset_filepath)
 
   chunksize = int(math.ceil(len(images) / num_shards))
 
@@ -140,18 +141,5 @@ def make_tfrecs(dataset_base_dir = None , #example: home/imagenet/train
 
     make_single_tfrecord(chunk_files,chunk_synsets,chunk_labels,output_filepath)
     
-def main():
-  parser = argparse.ArgumentParser(description='Make TFRecords')
-  parser.add_argument('--odir', type=str)
-  parser.add_argument('--data_dir',type=str)
-  parser.add_argument('--file_prefix',type=str)
-  parser.add_argument('--shards',type=int,default=10)
 
-  args = parser.parse_args()
-  make_tfrecs(dataset_base_dir=args.data_dir,
-              output_dir =  args.odir,
-              file_prefix =  args.file_prefix,
-              num_shards = args.shards)
-
-main()
 
