@@ -122,16 +122,3 @@ class ImageNet:
     else:
       ds = ds.map(lambda example: self.augment_fn(example))
     return ds
-    
-
-
-
-
-
-
-
-
-
-
-
-
