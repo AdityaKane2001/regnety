@@ -13,6 +13,16 @@ class ImageNet:
     'synset': tf.io.FixedLenFeature([], tf.string)
   }
 
+  _MEAN = tf.constant([0.485, 0.456, 0.406])
+  _STD = tf.constant([0.229, 0.224, 0.225])
+
+  _EIG_VALS = tf.constant([[0.2175, 0.0188, 0.0045]])
+  _EIG_VECS = tf.constant([
+      [-0.5675, 0.7192, 0.4009],
+      [-0.5808, -0.0045, -0.8140],
+      [-0.5836, -0.6948, 0.4203],
+      ])
+
 
   def __init__(self,tfrecs_filepath = None,
                batch_size = 128,
@@ -111,6 +121,19 @@ class ImageNet:
           'filename' : example['filename'],
           'label' : example['label']
         }
+  
+  @tf.function
+  def _pca_jitter(self, image):
+      image = tf.cast(image, tf.float32)/255.
+      alpha = tf.random.normal((1,3), mean = 0, stddev = 0.1, dtype = tf.float32)
+      alpha = tf.repeat(alpha, repeats = 3, axis=0)
+      eigen_vals = tf.repeat(ImageNet._EIG_VALS, repeats = 3, axis = 0)
+      rgb = tf.math.reduce_sum(ImageNet._EIG_VECS * alpha * eigen_vals, axis = 1)
+      temp_image = []
+      for i in range(3):
+        temp_image.append(image[:, :, i] + rgb[i])
+      image = tf.stack(temp_image, axis=-1)
+      return image 
     
  
   def make_dataset(self, ):
