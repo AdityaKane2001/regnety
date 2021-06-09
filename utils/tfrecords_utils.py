@@ -92,15 +92,24 @@ def make_image(filepath):
 
 def make_example(image_str,height,width,filepath,label,synset):
 
-  example = tf.train.Example(features = tf.train.Features(feature={
+  try:
+    example = tf.train.Example(features = tf.train.Features(feature={
     'image' : _bytes_feature(image_str),
     'height' : _int64_feature(height),
     'width' : _int64_feature(width),
-    'filename' : _bytes_feature(bytes(os.path.basename(os.path.dirname(filepath))).encode('utf8')),
+    'filename' : _bytes_feature(bytes(os.path.basename(filepath)).encode('utf8')),
     'label' : _int64_feature(label),
     'synset' : _bytes_feature(bytes(synset).encode('utf8'))
   }))
-
+  except TypeError:
+    example = tf.train.Example(features = tf.train.Features(feature={
+    'image' : _bytes_feature(image_str),
+    'height' : _int64_feature(height),
+    'width' : _int64_feature(width),
+    'filename' : _bytes_feature(bytes(os.path.basename(filepath),encoding = 'utf8')),
+    'label' : _int64_feature(label),
+    'synset' : _bytes_feature(bytes(synset,encoding = 'utf8'))
+  }))
   return example
 
 
