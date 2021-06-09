@@ -31,6 +31,7 @@ class ImageNet:
 
     if tfrecs_filepath is None:
       raise ValueError('List of TFrecords paths cannot be None')
+    print('hi')
     self.tfrecs_filepath = tfrecs_filepath
     self.batch_size = batch_size
     self.image_size = image_size
@@ -67,8 +68,8 @@ class ImageNet:
         im = tf.image.resize(image, (w,h))
     else:
       im = tf.image.resize(image, (w,h))
-    x = tf.cast(tf.math.ceil((w - final_size) / 2 ), tf.int64)
-    y = tf.cast(tf.math.ceil((h - final_size) / 2), tf.int64)
+    x = (w - final_size) / 2 
+    y = (h - final_size) / 2
     return im[y : (y + final_size), x : (x + final_size), :]
 
 

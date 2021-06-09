@@ -96,9 +96,9 @@ def make_example(image_str,height,width,filepath,label,synset):
     'image' : _bytes_feature(image_str),
     'height' : _int64_feature(height),
     'width' : _int64_feature(width),
-    'filename' : _bytes_feature(bytes(os.path.basename(os.path.dirname(filepath)),encoding='utf8')),
+    'filename' : _bytes_feature(bytes(os.path.basename(os.path.dirname(filepath))).encode('utf8')),
     'label' : _int64_feature(label),
-    'synset' : _bytes_feature(bytes(synset,encoding='utf8'))
+    'synset' : _bytes_feature(bytes(synset).encode('utf8'))
   }))
 
   return example
