@@ -43,13 +43,14 @@ def get_synset_labels(filepath):
     return labels_dict
 
 
-def get_files(data_dir, synset_filepath):
+def get_files(data_dir, synset_filepath, shuffle = True):
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*", "*.JPEG"))
     all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
     print(len(all_images))
     all_indexes = list(range(len(all_images)))
-    random.shuffle(all_indexes)
+    if shuffle:
+        random.shuffle(all_indexes)
 
     all_images = [all_images[i] for i in all_indexes]
     all_synsets = [all_synsets[i][1:] + "-n" for i in all_indexes]
