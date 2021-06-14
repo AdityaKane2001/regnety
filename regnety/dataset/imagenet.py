@@ -18,7 +18,7 @@ class ImageNet:
                     - Scale and center crop
                     - RandAugment (TODO)
         num_classes: number of classes
-        randaugment: True of RandAugment is to be applied
+        randaugment: True if RandAugment is to be applied
 
     Class attributes:
         TFRECS_FORMAT: Expected format of TFRecords stored.
