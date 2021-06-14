@@ -74,7 +74,7 @@ def get_files(data_dir, synset_filepath):
 def make_image(filepath):
 
     image_str = tf.io.read_file(filepath)
-    print(image_str)
+    
 
     if is_png(filepath):
         image_str = png_to_jpeg(image_str)
@@ -82,20 +82,18 @@ def make_image(filepath):
     if is_cmyk(filepath):
         image_str = cmyk_to_rgb(image_str)
 
-    print(image_str)
-
     image_tensor = tf.io.decode_jpeg(image_str)
 
-    height = image_tensor.get_shape()[0]
-    width = image_tensor.get_shape()[1]
-
-    if image_tensor.shape[2] == 1:
+    if not is_rgb(image_tensor):
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
-        image_str = tf.io.encode_jpeg(image_tensor)
+        
+    image_tensor = tf.cast(tf.image.resize(image_tensor, (512,512)), tf.uint8)
+
+    image_str = tf.io.encode_jpeg(image_tensor)
 
     assert len(image_tensor.shape) == 3
 
-    return image_str, height, width
+    return image_str, 512, 512
 
 
 def make_example(image_str, height, width, filepath, label, synset):

@@ -44,6 +44,9 @@ def is_cmyk(filename):
             )
         )
 
+def is_rgb(image):
+    shape = tf.shape(image)[2]
+    return tf.math.equal(shape, 3)
 
 def png_to_jpeg(image_str):
     """Returns jpeg encoded string"""
