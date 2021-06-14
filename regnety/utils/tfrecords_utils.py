@@ -13,7 +13,7 @@ def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
         value = (
-            value.numpy()
+            value
         )  # BytesList won't unpack a string from an EagerTensor.
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
@@ -40,16 +40,6 @@ def get_synset_labels(filepath):
             int(i),
             raw_labels_dict[i]["label"],
         )
-    # with open(filepath,'r') as f:
-    #   all_lines = f.readlines()
-    #   all_lines.sort()
-    #   all_lines = list(map(lambda x: x.split(': '), all_lines))
-
-    #   labels_dict = dict()
-
-    #   for i in range(len(all_lines)):
-    #     labels_dict[all_lines[i][0]] = (i,all_lines[i][1])
-
     return labels_dict
 
 
@@ -93,38 +83,34 @@ def make_image(filepath):
 
     assert len(image_tensor.shape) == 3
 
-    return image_str, 512, 512
+    return image_str
 
 
-def make_example(image_str, height, width, filepath, label, synset):
+def make_example(image_str, filepath, label, synset):
 
     try:
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     "image": _bytes_feature(image_str),
-                    "height": _int64_feature(height),
-                    "width": _int64_feature(width),
                     "filename": _bytes_feature(
-                        bytes(os.path.basename(filepath)).encode("utf8")
+                        os.path.basename(filepath)
                     ),
                     "label": _int64_feature(label),
-                    "synset": _bytes_feature(bytes(synset).encode("utf8")),
+                    "synset": _bytes_feature(synset),
                 }
             )
         )
-    except TypeError:
+    except:
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     "image": _bytes_feature(image_str),
-                    "height": _int64_feature(height),
-                    "width": _int64_feature(width),
                     "filename": _bytes_feature(
-                        bytes(os.path.basename(filepath), encoding="utf8")
+                        os.path.basename(filepath)
                     ),
                     "label": _int64_feature(label),
-                    "synset": _bytes_feature(bytes(synset, encoding="utf8")),
+                    "synset": _bytes_feature(synset),
                 }
             )
         )
@@ -163,27 +149,35 @@ def make_tfrecs(
 
     images, labels, synsets = get_files(dataset_base_dir, synset_filepath)
 
-    ds = tf.data.Dataset.from_tensor_slices([
+    filepaths_ds = tf.data.Dataset.from_tensor_slices([
         (images[i]) for i in range(len(labels))
     ])
 
-    ds = ds.map(lambda filepath: make_image(filepath))
 
-
-    return ds
-
+    images_ds = filepaths_ds.map(lambda filepath: make_image(filepath))
+    labels_ds = tf.data.Dataset.from_tensor_slices(labels)
+    synsets_ds = tf.data.Dataset.from_tensor_slices(synsets)
+    filepaths_ds = filepaths_ds.map(lambda filepath: tf.strings.split(filepath, '/')[-1])
+    
+    ds = tf.data.Dataset.zip((images_ds, filepaths_ds, labels_ds, synsets_ds))  
+    ds = ds.batch(batch_size, drop_remainder = False)
+    
     num_shards = int(math.ceil(len(images) / batch_size))
 
-
-    for shard in range(num_shards):
-        chunk_files = images[shard * batch_size : (shard + 1) * batch_size]
-        chunk_synsets = synsets[shard * batch_size : (shard + 1) * batch_size]
-        chunk_labels = labels[shard * batch_size : (shard + 1) * batch_size]
-
+    shard = 0
+    for (image_str, filename, label, synset) in ds:
+        
         output_filepath = os.path.join(
-            output_dir, file_prefix + "_%.4d_of_%.4d" % (shard, num_shards)
+            output_dir, file_prefix + "_%.4d_of_%.4d.tfrecord" % (shard, num_shards)
         )
-
-        make_single_tfrecord(
-            chunk_files, chunk_synsets, chunk_labels, output_filepath
-        )
+        print("Writing %d of %d shards"%(shard, num_shards))
+        with tf.io.TFRecordWriter(output_filepath) as writer:
+            for i in range(len(label)):
+                example = make_example(
+                    image_str[i].numpy(), filename[i].numpy(), label[i].numpy(), 
+                    synset[i].numpy()
+            )
+                writer.write(example.SerializeToString())
+        writer.close()
+        shard += 1
+    

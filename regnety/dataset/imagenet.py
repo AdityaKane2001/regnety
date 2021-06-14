@@ -29,8 +29,8 @@ class ImageNet:
 
     TFRECS_FORMAT = {
         "image": tf.io.FixedLenFeature([], tf.string),
-        "height": tf.io.FixedLenFeature([], tf.int64),
-        "width": tf.io.FixedLenFeature([], tf.int64),
+        # "height": tf.io.FixedLenFeature([], tf.int64),
+        # "width": tf.io.FixedLenFeature([], tf.int64),
         "filename": tf.io.FixedLenFeature([], tf.string),
         "label": tf.io.FixedLenFeature([], tf.int64),
         "synset": tf.io.FixedLenFeature([], tf.string),
@@ -71,8 +71,8 @@ class ImageNet:
             the same names as TFRECORDS_FORMAT.
         """
         image = tf.cast(tf.io.decode_jpeg(example["image"]), tf.float32)
-        height = example["height"]
-        width = example["width"]
+        height = 512
+        width = 512
         filename = example["filename"]
         label = example["label"]
         synset = example["synset"]
