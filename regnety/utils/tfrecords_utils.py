@@ -30,6 +30,15 @@ def _int64_feature(value):
 
 # make_tfrecs -> for(make_single_tfrecord)-> make_dataset -> make_example
 def get_synset_labels(filepath):
+    """
+    Gets synsets from json file in a dict 
+    Args:
+        filepath: json file path
+    
+    Returns:
+        Dict having the following structure:
+    
+    """
 
     with open(filepath, "r") as f:
         raw_labels_dict = json.load(f)
