@@ -73,8 +73,8 @@ def get_files(data_dir, synset_filepath):
 
 def make_image(filepath):
 
-    with tf.io.gfile.GFile(filepath, "rb") as f:
-        image_str = f.read()
+    image_str = tf.io.read_file(filepath)
+    print(image_str)
 
     if is_png(filepath):
         image_str = png_to_jpeg(image_str)
@@ -82,17 +82,18 @@ def make_image(filepath):
     if is_cmyk(filepath):
         image_str = cmyk_to_rgb(image_str)
 
+    print(image_str)
+
     image_tensor = tf.io.decode_jpeg(image_str)
 
-    height = image_tensor.shape[0]
-    width = image_tensor.shape[1]
+    height = image_tensor.get_shape()[0]
+    width = image_tensor.get_shape()[1]
 
     if image_tensor.shape[2] == 1:
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
         image_str = tf.io.encode_jpeg(image_tensor)
 
     assert len(image_tensor.shape) == 3
-    assert image_tensor.shape[2] == 3
 
     return image_str, height, width
 
@@ -155,19 +156,31 @@ def make_tfrecs(
     output_dir=None,  # example: home/imagenet_tfrecs
     file_prefix=None,  # example: file_prefix = 'train' makes all files look like: train_0000_of_num_shards
     synset_filepath=None,
-    num_shards=10,
+    batch_size=1024,
 ):
 
     """Driver function"""
 
+
+
     images, labels, synsets = get_files(dataset_base_dir, synset_filepath)
 
-    chunksize = int(math.ceil(len(images) / num_shards))
+    ds = tf.data.Dataset.from_tensor_slices([
+        (images[i]) for i in range(len(labels))
+    ])
+
+    ds = ds.map(lambda filepath: make_image(filepath))
+
+
+    return ds
+
+    num_shards = int(math.ceil(len(images) / batch_size))
+
 
     for shard in range(num_shards):
-        chunk_files = images[shard * chunksize : (shard + 1) * chunksize]
-        chunk_synsets = synsets[shard * chunksize : (shard + 1) * chunksize]
-        chunk_labels = labels[shard * chunksize : (shard + 1) * chunksize]
+        chunk_files = images[shard * batch_size : (shard + 1) * batch_size]
+        chunk_synsets = synsets[shard * batch_size : (shard + 1) * batch_size]
+        chunk_labels = labels[shard * batch_size : (shard + 1) * batch_size]
 
         output_filepath = os.path.join(
             output_dir, file_prefix + "_%.4d_of_%.4d" % (shard, num_shards)
