@@ -28,8 +28,8 @@ def _int64_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 
-# make_tfrecs -> for(make_single_tfrecord)-> make_dataset -> make_example
-def get_synset_labels(filepath):
+# make_tfrecs -> for(make_single_tfrecord)-> make_dataset -> _make_example
+def _get_synset_labels(filepath):
     """
     Gets synsets from json file in a dict 
     Args:
@@ -37,6 +37,7 @@ def get_synset_labels(filepath):
     
     Returns:
         Dict having the following structure:
+        {str id : (int synset_ID, str label_name )}
     
     """
 
@@ -52,7 +53,20 @@ def get_synset_labels(filepath):
     return labels_dict
 
 
-def get_files(data_dir, synset_filepath, shuffle = True):
+def _get_files(data_dir, synset_filepath, shuffle = True):
+    """
+    Returns lists of all files, their integer labels and their synsets
+    Args:
+        data_dir: directory containing ImageNet-style directory structure 
+            (synsets ID as directory names, images inside)
+        synset_filepath: path to synsets json file
+        shuffle: True if data needs to be shuffled    
+    
+    Returns:
+        all_images: paths to all image files
+        all_labels: integer labels corresponding to images in all_images list
+        all_synsets: synset strings corresponding to images in all_images list
+    """
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*", "*.JPEG"))
     all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
@@ -64,14 +78,24 @@ def get_files(data_dir, synset_filepath, shuffle = True):
     all_images = [all_images[i] for i in all_indexes]
     all_synsets = [all_synsets[i][1:] + "-n" for i in all_indexes]
 
-    labels_dict = get_synset_labels(synset_filepath)
+    labels_dict = _get_synset_labels(synset_filepath)
 
     all_labels_int = [labels_dict[i][0] for i in all_synsets]
 
     return all_images, all_labels_int, all_synsets
 
 
-def make_image(filepath):
+def _make_image(filepath):
+    """
+    Reads an image and returns its raw byte string. Converts all images to JPEG 
+    RGB. 
+
+    Args:
+        filepath: path to .JPEG image
+
+    Returns:
+        A byte string of the image with JPEG RGB format. 
+    """
 
     image_str = tf.io.read_file(filepath)
     
@@ -96,53 +120,34 @@ def make_image(filepath):
     return image_str
 
 
-def make_example(image_str, filepath, label, synset):
+def _make_example(image_str, filepath, label, synset):
+    """
+    Makes a single example from arguments
 
-    try:
-        example = tf.train.Example(
-            features=tf.train.Features(
-                feature={
-                    "image": _bytes_feature(image_str),
-                    "filename": _bytes_feature(
-                        os.path.basename(filepath)
-                    ),
-                    "label": _int64_feature(label),
-                    "synset": _bytes_feature(synset),
-                }
-            )
+    Args:
+        image_str: bytes string of image in JPEG RGB format
+        filepath: path to image
+        label: integer denoting label
+        synset: synset string corresponding to image
+    
+    Returns:
+        A tf.train.Example having aforementioned attributes
+    """
+
+    example = tf.train.Example(
+        features=tf.train.Features(
+            feature={
+                "image": _bytes_feature(image_str),
+                "filename": _bytes_feature(
+                    os.path.basename(filepath)
+                ),
+                "label": _int64_feature(label),
+                "synset": _bytes_feature(synset),
+            }
         )
-    except:
-        example = tf.train.Example(
-            features=tf.train.Features(
-                feature={
-                    "image": _bytes_feature(image_str),
-                    "filename": _bytes_feature(
-                        os.path.basename(filepath)
-                    ),
-                    "label": _int64_feature(label),
-                    "synset": _bytes_feature(synset),
-                }
-            )
-        )
+    )
+
     return example
-
-
-def make_single_tfrecord(
-    chunk_files, chunk_synsets, chunk_labels, output_filepath
-):
-
-    with tf.io.TFRecordWriter(output_filepath) as writer:
-        for i in range(len(chunk_files)):
-            image_str, height, width = make_image(chunk_files[i])
-            label = chunk_labels[i]
-            synset = chunk_synsets[i]
-
-            example = make_example(
-                image_str, height, width, chunk_files[i], label, synset
-            )
-
-            writer.write(example.SerializeToString())
-    writer.close()
 
 
 def make_tfrecs(
@@ -151,25 +156,42 @@ def make_tfrecs(
     file_prefix=None,  # example: file_prefix = 'train' makes all files look like: train_0000_of_num_shards
     synset_filepath=None,
     batch_size=1024,
+    logging_frequency=10
 ):
 
-    """Driver function"""
+    """
+    Only public function of the module. Makes TFReocrds and stores them in 
+    output_dir. Each TFRecord except last one has exactly one batch of data. 
+
+    Args:
+        dataset_base_dir: directory containing ImageNet-style directory 
+            structure (synsets ID as directory names, images inside)
+        output_dir: Directory to store TFRecords
+        file_prefix: prefix to be added tfrecords files
+        synset_filepath: path to synsets json file
+        batch_size: batch size of dataset. Each TFRecords, except the last one 
+            will contain these many examples.
+        logging_frequency: 'Writing shard ..'  will be logged to stdout after 
+            these many shards are written.
+
+    Returns None
+    """
 
 
 
-    images, labels, synsets = get_files(dataset_base_dir, synset_filepath)
+    images, labels, synsets = _get_files(dataset_base_dir, synset_filepath)
 
     filepaths_ds = tf.data.Dataset.from_tensor_slices([
         (images[i]) for i in range(len(labels))
     ])
 
 
-    images_ds = filepaths_ds.map(lambda filepath: make_image(filepath))
+    images_ds = filepaths_ds.map(lambda filepath: _make_image(filepath))
     labels_ds = tf.data.Dataset.from_tensor_slices(labels)
     synsets_ds = tf.data.Dataset.from_tensor_slices(synsets)
-    filepaths_ds = filepaths_ds.map(lambda filepath: tf.strings.split(filepath, '/')[-1])
+    filename_ds = filepaths_ds.map(lambda filepath: tf.strings.split(filepath, '/')[-1])
     
-    ds = tf.data.Dataset.zip((images_ds, filepaths_ds, labels_ds, synsets_ds))  
+    ds = tf.data.Dataset.zip((images_ds, filename_ds, labels_ds, synsets_ds))  
     ds = ds.batch(batch_size, drop_remainder = False)
     
     num_shards = int(math.ceil(len(images) / batch_size))
@@ -180,14 +202,16 @@ def make_tfrecs(
         output_filepath = os.path.join(
             output_dir, file_prefix + "_%.4d_of_%.4d.tfrecord" % (shard, num_shards)
         )
-        print("Writing %d of %d shards"%(shard, num_shards))
+        
+        if shard % logging_frequency == 0:
+            print("Writing %d of %d shards" % (shard, num_shards))
         with tf.io.TFRecordWriter(output_filepath) as writer:
             for i in range(len(label)):
-                example = make_example(
+                example = _make_example(
                     image_str[i].numpy(), filename[i].numpy(), label[i].numpy(), 
                     synset[i].numpy()
             )
                 writer.write(example.SerializeToString())
         writer.close()
         shard += 1
-    
+    print('All shards written successfully!')
