@@ -13,7 +13,7 @@ def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
         value = (
-            value
+            value.numpy()
         )  # BytesList won't unpack a string from an EagerTensor.
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
@@ -107,7 +107,7 @@ def _make_image(filepath):
         image_str = cmyk_to_rgb(image_str)
 
     image_tensor = tf.io.decode_jpeg(image_str)
-    height, width = image.shape[0], image.shape[1] 
+    height, width = image_tensor.shape[0], image_tensor.shape[1] 
 
     if not is_rgb(image_tensor):
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
@@ -119,7 +119,7 @@ def _make_image(filepath):
     return image_str, height, width
 
 
-def _make_example(image_str, filepath, label, synset):
+def _make_example(image_str, height, width, filepath, label, synset):
     """
     Makes a single example from arguments
 
@@ -143,7 +143,7 @@ def _make_example(image_str, filepath, label, synset):
                     "height": _int64_feature(height),
                     "width": _int64_feature(width),
                     "filename": _bytes_feature(
-                        bytes(os.path.basename(filepath)).encode("utf8")
+                        bytes(os.path.basename(filepath)).encode("utf8") 
                     ),
                     "label": _int64_feature(label),
                     "synset": _bytes_feature(bytes(synset).encode("utf8")),
@@ -177,6 +177,13 @@ def _make_single_tfrecord(
     Creates a single TFRecord file having batch_size examples.
 
     Args: 
+        chunk_files: list of filepaths to images
+        chunk_synsets: list of synsets corresponding to images in chunk_files
+        chunk_labels: list of integer labels corresponding to images in 
+            chunk_files
+        output_filepath: Output tfrecord file
+
+    Returns None 
     """
 
     with tf.io.TFRecordWriter(output_filepath) as writer:
@@ -199,7 +206,7 @@ def make_tfrecs(
     file_prefix=None,  # example: file_prefix = 'train' makes all files look like: train_0000_of_num_shards
     synset_filepath=None,
     batch_size=1024,
-    logging_frequency=10
+    logging_frequency=1
 ):
     """
     Only public function of the module. Makes TFReocrds and stores them in 
@@ -219,13 +226,12 @@ def make_tfrecs(
     Returns None
     """
 
-
     images, labels, synsets = _get_files(dataset_base_dir, synset_filepath)
 
     num_shards = int(math.ceil(len(images) / batch_size))
 
     for shard in range(num_shards):
-         if shard % logging_frequency == 0:
+        if shard % logging_frequency == 0:
             print("Writing %d of %d shards" % (shard, num_shards))
 
         chunk_files = images[shard * batch_size : (shard + 1) * batch_size]
@@ -233,7 +239,7 @@ def make_tfrecs(
         chunk_labels = labels[shard * batch_size : (shard + 1) * batch_size]
 
         output_filepath = os.path.join(
-            output_dir, file_prefix + "_%.4d_of_%.4d" % (shard, num_shards)
+            output_dir, file_prefix + "_%.4d_of_%.4d.tfrecord" % (shard, num_shards)
         )
 
         _make_single_tfrecord(

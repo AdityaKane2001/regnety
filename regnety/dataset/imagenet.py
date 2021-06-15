@@ -2,43 +2,33 @@ import tensorflow as tf
 import os
 from official.vision.image_classification.augment import RandAugment
 
+_TFRECS_FORMAT = {
+        "image": tf.io.FixedLenFeature([], tf.string),
+        "height": tf.io.FixedLenFeature([], tf.int64),
+        "width": tf.io.FixedLenFeature([], tf.int64),
+        "filename": tf.io.FixedLenFeature([], tf.string),
+        "label": tf.io.FixedLenFeature([], tf.int64),
+        "synset": tf.io.FixedLenFeature([], tf.string),
+}
+
 
 class ImageNet:
     """Class for all ImageNet related functions, includes TFRecords loading,
     preprocessing and augmentations. TFRecords must follow the format given
-    below.
+    below. If not specified otherwise in `augment_fn` argument, following 
+    augmentations are applied to the dataset:
+    - Random sized crop (train only)
+    - Scale and center crop
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
         batch_size: batch_size for the Dataset
         image_size: final image size of the images in the dataset
         augment_fn: function to apply to dataset after loading raw TFrecords
-                    'default' implies following augmentations will be applied:
-                    - Random sized crop (train only)
-                    - Scale and center crop
-                    - RandAugment (TODO)
         num_classes: number of classes
         randaugment: True if RandAugment is to be applied
 
-    Class attributes:
-        TFRECS_FORMAT: Expected format of TFRecords stored.
-        _MEAN: Channel wise mean for ImageNet
-        _STD: Channel wise standard deviation for ImageNet
-
     """
-
-    TFRECS_FORMAT = {
-        "image": tf.io.FixedLenFeature([], tf.string),
-        # "height": tf.io.FixedLenFeature([], tf.int64),
-        # "width": tf.io.FixedLenFeature([], tf.int64),
-        "filename": tf.io.FixedLenFeature([], tf.string),
-        "label": tf.io.FixedLenFeature([], tf.int64),
-        "synset": tf.io.FixedLenFeature([], tf.string),
-    }
-
-    _MEAN = tf.constant([0.485, 0.456, 0.406])
-    _STD = tf.constant([0.229, 0.224, 0.225])
-
     def __init__(
         self,
         tfrecs_filepath=None,
@@ -58,7 +48,7 @@ class ImageNet:
         self.num_classes = num_classes
         self.randaugment = randaugment
         if self.randaugment:
-            self.augmenter = RandAugment(magnitude=5)
+            self._augmenter = RandAugment(magnitude=5, num_layers=2)
 
     def decode_example(self, example):
         """Decodes an example to its individual attributes
@@ -71,8 +61,8 @@ class ImageNet:
             the same names as TFRECORDS_FORMAT.
         """
         image = tf.cast(tf.io.decode_jpeg(example["image"]), tf.float32)
-        height = 512
-        width = 512
+        height = example['height']
+        width = example['width']
         filename = example["filename"]
         label = example["label"]
         synset = example["synset"]
@@ -93,14 +83,14 @@ class ImageNet:
         """
         ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
-            lambda example: tf.io.parse_example(example, ImageNet.TFRECS_FORMAT)
+            lambda example: tf.io.parse_example(example, _TFRECS_FORMAT)
         )
         ds = ds.map(lambda example: self.decode_example(example))
         return ds
 
     def _scale_and_center_crop(self, image, h, w, scale_size, final_size):
         """Resizes image to given scale size and returns a center crop. Aspect
-        ratio is NOT maintained.
+        ratio is maintained.
 
         Args:
             image: tensor of the image
@@ -141,7 +131,7 @@ class ImageNet:
                 than original width and height before max_iter.
 
         Returns:
-            Example of same format as TFRECS_FORMAT
+            Example of same format as _TFRECS_FORMAT
         """
 
         h, w = tf.cast(example["height"], tf.int64), tf.cast(
@@ -211,7 +201,7 @@ class ImageNet:
             "synset": example["synset"],
         }
 
-    def clip_example(self, example):
+    def _one_hot_encode_example(self, example):
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
 
@@ -237,7 +227,7 @@ class ImageNet:
         Returns:
             example in which RandAugment has been applied to the image
         """
-        example['image'] = self.augmenter.distort(example['image'])
+        example['image'] = self._augmenter.distort(example['image'])
         return example
 
     def make_dataset(
@@ -260,9 +250,10 @@ class ImageNet:
             ds = ds.map(lambda example: self.random_sized_crop(example))
             if self.randaugment:
                 ds = ds.map(lambda example: self._randaugment(example))
-            #ds = ds.map(lambda example: self.clip_example(example))
 
         else:
             ds = ds.map(lambda example: self.augment_fn(example))
+        
+        ds = ds.map(lambda example: self._one_hot_encode_example(example))
 
         return ds

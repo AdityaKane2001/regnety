@@ -29,7 +29,7 @@ def main():
     #     break
         
 
-    imgnet = ImageNet([os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial5')])
+    imgnet = ImageNet([os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial6')])
     ds = imgnet.make_dataset()
     for i in ds:
       print(i)
