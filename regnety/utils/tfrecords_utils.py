@@ -225,6 +225,9 @@ def make_tfrecs(
 
     Returns None
     """
+    if None in (dataset_base_dir, output_dir, file_prefix, synset_filepath):
+        raise ValueError('One or more of the arguments is None. \ 
+            Please check the arguments and try again.')
 
     images, labels, synsets = _get_files(dataset_base_dir, synset_filepath)
 

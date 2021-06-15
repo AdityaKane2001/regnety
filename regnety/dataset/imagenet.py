@@ -1,8 +1,9 @@
 import tensorflow as tf
 import os
+from dataclasses import dataclass
 from official.vision.image_classification.augment import RandAugment
 
-_TFRECS_FORMAT = {
+TFRECS_FORMAT = {
         "image": tf.io.FixedLenFeature([], tf.string),
         "height": tf.io.FixedLenFeature([], tf.int64),
         "width": tf.io.FixedLenFeature([], tf.int64),
@@ -11,6 +12,26 @@ _TFRECS_FORMAT = {
         "synset": tf.io.FixedLenFeature([], tf.string),
 }
 
+@dataclass
+class _TFRECS_FORMAT():
+    """Dataclass for holding attributes of an example in TFRecord.
+    
+    Args:
+        image: image in either byte string or Tensor
+        height: height of image
+        width: width of image
+        filename: filename of image
+        label: integer label corresponding to image
+        synset: synset ID corresponding to label
+    """
+
+    image: tf.Tensor
+    height: tf.Tensor
+    width: tf.Tensor
+    filename: tf.Tensor
+    label: tf.Tensor
+    sysnet: tf.Tensor
+    
 
 class ImageNet:
     """Class for all ImageNet related functions, includes TFRecords loading,
