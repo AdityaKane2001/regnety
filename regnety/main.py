@@ -17,13 +17,13 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1024)
 
     args = parser.parse_args()
-    make_tfrecs(
-        dataset_base_dir=args.data_dir,
-        output_dir=args.odir,
-        file_prefix=args.file_prefix,
-        synset_filepath=args.synset_filepath,
-        batch_size = args.batch_size,
-    )
+    # make_tfrecs(
+    #     dataset_base_dir=args.data_dir,
+    #     output_dir=args.odir,
+    #     file_prefix=args.file_prefix,
+    #     synset_filepath=args.synset_filepath,
+    #     batch_size = args.batch_size,
+    # )
     # for i in ds:
     #     print(i)
     #     break
