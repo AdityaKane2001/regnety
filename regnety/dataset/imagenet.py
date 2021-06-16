@@ -52,12 +52,12 @@ class ImageNet:
     """
     def __init__(
         self,
-        tfrecs_filepath=None,
-        batch_size=128,
-        image_size=224,
-        augment_fn="default",
-        num_classes=10,
-        randaugment=True,
+        tfrecs_filepath: str = None,
+        batch_size: int = 128,
+        image_size: int = 224,
+        augment_fn: str = "default",
+        num_classes: int = 10,
+        randaugment: bool = True,
     ):
 
         if tfrecs_filepath is None:
@@ -71,7 +71,7 @@ class ImageNet:
         if self.randaugment:
             self._augmenter = RandAugment(magnitude=5, num_layers=2)
 
-    def decode_example(self, example):
+    def decode_example(self, example: tf.Tensor) -> _TFRECS_FORMAT:
         """Decodes an example to its individual attributes
 
         Args:
@@ -87,16 +87,9 @@ class ImageNet:
         filename = example["filename"]
         label = example["label"]
         synset = example["synset"]
-        return {
-            "image": image,
-            "height": height,
-            "width": width,
-            "filename": filename,
-            "label": label,
-            "synset": synset,
-        }
+        return _TFRECS_FORMAT(image, height, width, filename, label, synset)
 
-    def _read_tfrecs(self):
+    def _read_tfrecs(self) -> tf.data.Dataset:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
 
         Returns:
@@ -111,8 +104,8 @@ class ImageNet:
 
     def _scale_and_center_crop(self, image, h, w, scale_size, final_size):
         """Resizes image to given scale size and returns a center crop. Aspect
-        ratio is maintained.
-
+        ratio is maintained. Note that final_size must be less than or equal to
+        scale_size
         Args:
             image: tensor of the image
             h: initial height of image
