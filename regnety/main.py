@@ -8,6 +8,7 @@ from utils.tfrecords_utils import *
 from dataset.imagenet import ImageNet
 import matplotlib.pyplot as plt
 
+
 def main():
     parser = argparse.ArgumentParser(description="Make TFRecords")
     parser.add_argument("--odir", type=str)
@@ -27,16 +28,21 @@ def main():
     # for i in ds:
     #     print(i)
     #     break
-        
 
-    imgnet = ImageNet([os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial6')])
+    imgnet = ImageNet(
+        [
+            os.path.join("/content", i)
+            for i in os.listdir("/content")
+            if i.startswith("trial6")
+        ]
+    )
     ds = imgnet.make_dataset()
     for i in ds:
-      print(i)
-      im = i['image']/255.
-      plt.imshow(im)
-      plt.savefig('image.jpeg')
-      break
+        print(i)
+        im = i["image"] / 255.0
+        plt.imshow(im)
+        plt.savefig("image.jpeg")
+        break
 
 
 main()

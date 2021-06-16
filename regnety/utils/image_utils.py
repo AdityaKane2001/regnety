@@ -13,7 +13,8 @@ def is_png(filename):
 
 
 def is_cmyk(filename):
-    blacklist = tf.constant([
+    blacklist = tf.constant(
+        [
             "n01739381_1309.JPEG",
             "n02077923_14822.JPEG",
             "n02447366_23489.JPEG",
@@ -36,17 +37,19 @@ def is_cmyk(filename):
             "n04596742_4225.JPEG",
             "n07583066_647.JPEG",
             "n13037406_4650.JPEG",
-        ])
+        ]
+    )
     return tf.math.reduce_any(
         tf.strings.regex_full_match(
-            blacklist, 
-            tf.strings.split(filename, sep = '/')[-1]
-            )
+            blacklist, tf.strings.split(filename, sep="/")[-1]
         )
+    )
+
 
 def is_rgb(image):
     shape = tf.shape(image)[2]
     return tf.math.equal(shape, 3)
+
 
 def png_to_jpeg(image_str):
     """Returns jpeg encoded string"""
