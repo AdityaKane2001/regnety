@@ -34,9 +34,9 @@ def main():
     print('Time taken for 9469 images: ',str(timedelta(seconds = end_time - start_time)))
 
 
-    imgnet_time = (start_time - end_time) * (1330000/9469.)
+    imgnet_time = (end_time - start_time) * (1330000/9469.)
 
-    print('Thus, time taken for ImageNet    1k will be ' + str(timedelta(seconds = imgnet_time)))
+    print('Thus, time taken for ImageNet1k will be ' + str(timedelta(seconds = imgnet_time)))
     print()
 
     imgnet = ImageNet(
