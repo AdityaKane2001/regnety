@@ -53,6 +53,11 @@ def _get_synset_labels(filepath: str) -> dict:
         )
     return labels_dict
 
+def _get_default_synset_path() -> str:
+    self_path = __file__
+    path_segments = self_path.split('/')
+    regnety_path = '/'.join(path_segments[:-2])
+    return os.path.join(regnety_path, 'config', 'imagenet_synset_to_human.json')
 
 def _get_files(
     data_dir: str,
@@ -222,6 +227,7 @@ def make_tfrecs(
     synset_filepath: str = '',
     batch_size: int = 1024,
     logging_frequency:int = 1,
+    shuffle = True
 ):
     """
     Only public function of the module. Makes TFReocrds and stores them in
@@ -243,10 +249,23 @@ def make_tfrecs(
 
     Returns None
     """
-    if '' in (dataset_base_dir, output_dir, file_prefix, synset_filepath):
+    
+    if '' in (dataset_base_dir, output_dir, file_prefix):
         raise ValueError("One or more of the arguments is None.")
 
-    images, labels, synsets = _get_files(dataset_base_dir, synset_filepath)
+    if not os.path.exists(dataset_base_dir):
+        raise ValueError("Dataset path does not exist")
+    
+    if not os.path.exists(output_dir):
+        raise ValueError("Output directory does not exist")
+    
+    if synset_filepath is '':
+        synpath = _get_default_synset_path()
+    else:
+        synpath = synset_filepath
+
+    images, labels, synsets = _get_files(dataset_base_dir, synpath, 
+        shuffle = shuffle)
 
     num_shards = int(math.ceil(len(images) / batch_size))
 
