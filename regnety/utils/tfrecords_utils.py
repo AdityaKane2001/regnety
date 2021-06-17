@@ -4,8 +4,8 @@ import tensorflow as tf
 import os
 import random
 import json
-import argparse
 import math
+import time
 
 from .image_utils import *
 from typing import Tuple, List
@@ -226,8 +226,9 @@ def make_tfrecs(
     file_prefix: str = '',
     synset_filepath: str = '',
     batch_size: int = 1024,
-    logging_frequency:int = 1,
-    shuffle = True
+    logging_frequency: int = 1,
+    logging_gap: int = 3600,
+    shuffle: bool = True
 ):
     """
     Only public function of the module. Makes TFReocrds and stores them in
@@ -246,7 +247,9 @@ def make_tfrecs(
             will contain these many examples.
         logging_frequency: 'Writing shard ..'  will be logged to stdout after
             these many shards are written.
-
+        logging_gap: Interval in seconds after which  '<num> shards written in 
+            <logging_gap> seconds' message will be printed.
+        shuffle: True if dataset needs to be shuffled
     Returns None
     """
     
@@ -267,9 +270,20 @@ def make_tfrecs(
     images, labels, synsets = _get_files(dataset_base_dir, synpath, 
         shuffle = shuffle)
 
+    print('Total images: ',len(images))
+
     num_shards = int(math.ceil(len(images) / batch_size))
 
+    start_time = time.time()
+    last_written_shards = 0
+
     for shard in range(num_shards):
+        if time.time() - start_time >= logging_gap:
+            print('%d shards were completed in the last %d seconds.' % 
+                (last_written_shards - shard, logging_gap))
+            last_written_shards = shard
+            start_time = time.time()    
+
         if shard % logging_frequency == 0:
             print("Writing %d of %d shards" % (shard, num_shards))
 

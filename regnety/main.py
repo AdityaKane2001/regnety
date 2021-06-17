@@ -1,16 +1,11 @@
-import tensorflow as tf
-import os
-import shutil
-import random
-import json
 import argparse
-import math
-from utils.tfrecords_utils import *
-from dataset.imagenet import ImageNet
 import matplotlib.pyplot as plt
+import os
 import time
-from datetime import timedelta
 
+from dataset.imagenet import ImageNet
+from datetime import timedelta
+from utils.tfrecords_utils import *
 
 def main():
     parser = argparse.ArgumentParser(description="Make TFRecords")

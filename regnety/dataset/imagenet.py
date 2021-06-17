@@ -16,12 +16,12 @@ _TFRECS_FORMAT = {
     
 
 class ImageNet:
-    """Class for all ImageNet related functions, includes TFRecords loading,
-    preprocessing and augmentations. TFRecords must follow the format given
-    below. If not specified otherwise in `augment_fn` argument, following 
+    """Class for all ImageNet data-related functions, including TFRecord 
+    parsing along with augmentation transforms. TFRecords must follow the format
+    given below. If not specified otherwise in `augment_fn` argument, following 
     augmentations are applied to the dataset:
     - Random sized crop (train only)
-    - Scale and center crop
+    - Scale and center crop (validation and test only)
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
@@ -88,9 +88,13 @@ class ImageNet:
         """
         ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
-            lambda example: tf.io.parse_example(example, _TFRECS_FORMAT)
+            lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
+            num_parallel_calls = tf.data.AUTOTUNE
         )
-        ds = ds.map(lambda example: self.decode_example(example))
+        ds = ds.map(
+            lambda example: self.decode_example(example), 
+            num_parallel_calls = tf.data.AUTOTUNE 
+        )
         return ds
 
     def _scale_and_center_crop(self, 
@@ -209,15 +213,26 @@ class ImageNet:
         ds = self._read_tfrecs()
 
         if self.augment_fn == "default":
-            ds = ds.map(lambda example: self.random_sized_crop(example))
-            
+            ds = ds.map(
+                lambda example: self.random_sized_crop(example),
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
 
         else:
-            ds = ds.map(lambda example: self.augment_fn(example))
+            ds = ds.map(
+                lambda example: self.augment_fn(example),
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
 
         if self.randaugment:
-                ds = ds.map(lambda example: self._randaugment(example))
+            ds = ds.map(
+                lambda example: self._randaugment(example),
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
         
-        #ds = ds.map(lambda example: self._one_hot_encode_example(example))
+        # ds = ds.map(
+        #     lambda example: self._one_hot_encode_example(example),
+        #     num_parallel_calls = tf.data.AUTOTUNE
+        # )
 
         return ds
