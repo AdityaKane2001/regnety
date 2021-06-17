@@ -58,9 +58,9 @@ def _get_files(
     data_dir: str,
     synset_filepath: str,
     shuffle: bool = True) -> Tuple[
-        List[str, ...],
-        List[int, ...],
-        List[str, ...]
+        List[str],
+        List[int],
+        List[str]
     ]:
     """
     Returns lists of all files, their integer labels and their synsets
@@ -182,9 +182,9 @@ def _make_example(
 
 
 def _make_single_tfrecord(
-    chunk_files: List[str, ...],
-    chunk_synsets: List[str, ...],
-    chunk_labels: List[int, ...],
+    chunk_files: List[str],
+    chunk_synsets: List[str],
+    chunk_labels: List[int],
     output_filepath: str
 ):
 
