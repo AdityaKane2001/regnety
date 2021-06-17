@@ -6,8 +6,9 @@ import random
 import json
 import argparse
 import math
-from .image_utils import *
 
+from .image_utils import *
+from typing import Tuple, List
 
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
@@ -29,7 +30,7 @@ def _int64_feature(value):
 
 
 # make_tfrecs -> for(_make_single_tfrecord)-> make_dataset -> _make_example
-def _get_synset_labels(filepath):
+def _get_synset_labels(filepath: str) -> dict:
     """
     Gets synsets from json file in a dict
     Args:
@@ -53,7 +54,14 @@ def _get_synset_labels(filepath):
     return labels_dict
 
 
-def _get_files(data_dir, synset_filepath, shuffle=True):
+def _get_files(
+    data_dir: str,
+    synset_filepath: str,
+    shuffle: bool = True) -> Tuple[
+        List[str, ...],
+        List[int, ...],
+        List[str, ...]
+    ]:
     """
     Returns lists of all files, their integer labels and their synsets
     Args:
@@ -85,7 +93,7 @@ def _get_files(data_dir, synset_filepath, shuffle=True):
     return all_images, all_labels_int, all_synsets
 
 
-def _make_image(filepath):
+def _make_image(filepath: str) -> Tuple[str, int, int]:
     """
     Reads an image and returns its raw byte string. Converts all images to JPEG
     RGB.
@@ -118,7 +126,13 @@ def _make_image(filepath):
     return image_str, height, width
 
 
-def _make_example(image_str, height, width, filepath, label, synset):
+def _make_example(
+        image_str: bytes,
+        height: int,
+        width: int, 
+        filepath: str, 
+        label: int, 
+        synset: str) -> tf.train.Example:
     """
     Makes a single example from arguments
 
@@ -168,7 +182,10 @@ def _make_example(image_str, height, width, filepath, label, synset):
 
 
 def _make_single_tfrecord(
-    chunk_files, chunk_synsets, chunk_labels, output_filepath
+    chunk_files: List[str, ...],
+    chunk_synsets: List[str, ...],
+    chunk_labels: List[int, ...],
+    output_filepath: str
 ):
 
     """
@@ -199,12 +216,12 @@ def _make_single_tfrecord(
 
 
 def make_tfrecs(
-    dataset_base_dir=None,  # example: home/imagenet/train
-    output_dir=None,  # example: home/imagenet_tfrecs
-    file_prefix=None,  # example: file_prefix = 'train' makes all files look like: train_0000_of_num_shards
-    synset_filepath=None,
-    batch_size=1024,
-    logging_frequency=1,
+    dataset_base_dir: str = '',
+    output_dir: str = '',
+    file_prefix: str = '',
+    synset_filepath: str = '',
+    batch_size: int = 1024,
+    logging_frequency:int = 1,
 ):
     """
     Only public function of the module. Makes TFReocrds and stores them in
@@ -213,8 +230,11 @@ def make_tfrecs(
     Args:
         dataset_base_dir: directory containing ImageNet-style directory
             structure (synsets ID as directory names, images inside)
-        output_dir: Directory to store TFRecords
+            eg.: home/imagenet/train
+        output_dir: Directory to store TFRecords, eg: home/imagenet_tfrecs
         file_prefix: prefix to be added tfrecords files
+            eg.: if file_prefix = 'train' then 
+            all files look like: `train_0000_of_<num_shards>`
         synset_filepath: path to synsets json file
         batch_size: batch size of dataset. Each TFRecords, except the last one
             will contain these many examples.
@@ -223,7 +243,7 @@ def make_tfrecs(
 
     Returns None
     """
-    if None in (dataset_base_dir, output_dir, file_prefix, synset_filepath):
+    if '' in (dataset_base_dir, output_dir, file_prefix, synset_filepath):
         raise ValueError("One or more of the arguments is None.")
 
     images, labels, synsets = _get_files(dataset_base_dir, synset_filepath)

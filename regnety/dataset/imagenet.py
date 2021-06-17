@@ -1,7 +1,9 @@
 import tensorflow as tf
 import os
+
 from dataclasses import dataclass
 from official.vision.image_classification.augment import RandAugment
+from typing import Union, Callable, Tuple, List, Type
 
 _TFRECS_FORMAT = {
         "image": tf.io.FixedLenFeature([], tf.string),
@@ -34,16 +36,16 @@ class ImageNet:
     """
     def __init__(
         self,
-        tfrecs_filepath: str = None,
+        tfrecs_filepath: List[str]  = None,
         batch_size: int = 128,
         image_size: int = 224,
-        augment_fn: str = "default",
+        augment_fn: Union[str, Callable]  = "default",
         num_classes: int = 10,
         randaugment: bool = True,
     ):
 
-        if tfrecs_filepath is None:
-            raise ValueError("List of TFrecords paths cannot be None")
+        if (tfrecs_filepath is None) or  (tfrecs_filepath == []):
+            raise ValueError("List of TFrecords paths cannot be None or empty")
         self.tfrecs_filepath = tfrecs_filepath
         self.batch_size = batch_size
         self.image_size = image_size
@@ -53,7 +55,7 @@ class ImageNet:
         if self.randaugment:
             self._augmenter = RandAugment(magnitude=5, num_layers=2)
 
-    def decode_example(self, example: tf.Tensor):
+    def decode_example(self, example: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
 
         Args:
@@ -78,7 +80,7 @@ class ImageNet:
             "synset": synset,
         }
 
-    def _read_tfrecs(self) -> tf.data.Dataset:
+    def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
 
         Returns:
@@ -91,7 +93,10 @@ class ImageNet:
         ds = ds.map(lambda example: self.decode_example(example))
         return ds
 
-    def _scale_and_center_crop(self, image, scale_size, final_size):
+    def _scale_and_center_crop(self, 
+        image: tf.Tensor,
+        scale_size: tf.Tensor, 
+        final_size: tf.Tensor) -> tf.Tensor:
         """Resizes image to given scale size and returns a center crop. Aspect
         ratio is maintained. Note that final_size must be less than or equal to
         scale_size.
@@ -112,14 +117,15 @@ class ImageNet:
             tf.cast(final_size, tf.float32) / scale_size)
         
 
-    def random_sized_crop(self, example, min_area=0.08):
+    def random_sized_crop(self, 
+        example: dict,
+        min_area: float = 0.08) -> dict:
         """
-        Takes a random crop of image. Resizes it to self.image_size. Aspect 
-        ratio is NOT maintained. 
-        Code inspired by: https://tinyurl.com/tekd7yaz
+        Takes a random crop of image having a random aspect ratio. Resizes it 
+        to self.image_size. Aspect ratio is NOT maintained. 
 
         Args:
-            example: A dataset example.
+            example: A dataset example dict.
             min_area: Minimum area of image to be used
 
         Returns:
@@ -159,7 +165,7 @@ class ImageNet:
             "synset": example["synset"],
         }
 
-    def _one_hot_encode_example(self, example):
+    def _one_hot_encode_example(self, example: dict) -> dict:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
 
@@ -174,7 +180,7 @@ class ImageNet:
             "target": tf.one_hot(example["label"], self.num_classes),
         }
 
-    def _randaugment(self, example):
+    def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which
         accepts examples as input instead of images. Uses magnitude = 5
         as per pycls/pycls/datasets/augment.py#L29.
@@ -188,9 +194,7 @@ class ImageNet:
         example['image'] = self._augmenter.distort(example['image'])
         return example
 
-    def make_dataset(
-        self,
-    ):
+    def make_dataset(self) -> Type[tf.data.Dataset]:
         """
         Function to apply all preprocessing and augmentations on dataset using
         dataset.map().
