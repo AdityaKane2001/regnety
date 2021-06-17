@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--odir", type=str)
     parser.add_argument("--data_dir", type=str)
     parser.add_argument("--file_prefix", type=str)
-    parser.add_argument("--synset_filepath", type=str,, default='')
+    parser.add_argument("--synset_filepath", type=str, default='')
     parser.add_argument("--batch_size", type=int, default=1024)
 
     args = parser.parse_args()
