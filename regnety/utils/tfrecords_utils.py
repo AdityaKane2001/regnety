@@ -83,7 +83,6 @@ def _get_files(
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*", "*.JPEG"))
     all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
-    print(len(all_images))
     all_indexes = list(range(len(all_images)))
     if shuffle:
         random.shuffle(all_indexes)
@@ -278,11 +277,6 @@ def make_tfrecs(
     last_written_shards = 0
 
     for shard in range(num_shards):
-        if time.time() - start_time >= logging_gap:
-            print('%d shards were completed in the last %d seconds.' % 
-                (last_written_shards - shard, logging_gap))
-            last_written_shards = shard
-            start_time = time.time()    
 
         if shard % logging_frequency == 0:
             print("Writing %d of %d shards" % (shard, num_shards))
