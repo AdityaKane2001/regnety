@@ -112,8 +112,8 @@ class ImageNet:
         Returns:
             Tensor of shape (final_size, final_size, 3)
         """
-        if final_size > scale_size:
-            raise ValueError('final_size must be greater than scale_size, recieved %d and %d respectively' % (final_size, scale_size))
+        if final_size < scale_size:
+            raise ValueError('final_size must be lesser than scale_size, recieved %d and %d respectively' % (final_size, scale_size))
 
         square_scaled_image = tf.image.resize_with_pad(image, 
             scale_size, scale_size) 

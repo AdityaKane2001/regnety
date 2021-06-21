@@ -13,7 +13,7 @@ def is_png(filename):
 
 
 def is_cmyk(filename):
-    blacklist = tf.constant(
+    cmyk_filelist = tf.constant(
         [
             "n01739381_1309.JPEG",
             "n02077923_14822.JPEG",
@@ -41,7 +41,7 @@ def is_cmyk(filename):
     )
     return tf.math.reduce_any(
         tf.strings.regex_full_match(
-            blacklist, tf.strings.split(filename, sep="/")[-1]
+            cmyk_filelist, tf.strings.split(filename, sep="/")[-1]
         )
     )
 
