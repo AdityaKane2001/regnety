@@ -46,9 +46,12 @@ def main():
     m = (td.seconds/60) % 60
     s = td.seconds % 60
 
-    imgnet_time = (end_time - start_time) * (1330000/9469.)
-
-    print('Thus, time taken for ImageNet1k will be ' + str(timedelta(seconds = imgnet_time)))
+    td = td * (1330000/9469.)
+    h = td.seconds // 3600
+    m = (td.seconds/60) % 60
+    s = td.seconds % 60
+    print('Thus, time taken for ImageNet1k will be %d hours, %d minutes and %d seconds'
+        % (h, m, s))
     print()
 
     imgnet = ImageNet(
