@@ -273,9 +273,6 @@ def make_tfrecs(
 
     num_shards = int(math.ceil(len(images) / batch_size))
 
-    start_time = time.time()
-    last_written_shards = 0
-
     for shard in range(num_shards):
 
         if shard % logging_frequency == 0:
