@@ -230,9 +230,11 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
         
-        # ds = ds.map(
-        #     lambda example: self._one_hot_encode_example(example),
-        #     num_parallel_calls = tf.data.AUTOTUNE
-        # )
+        ds = ds.map(
+            lambda example: self._one_hot_encode_example(example),
+            num_parallel_calls = tf.data.AUTOTUNE
+        )
+
+        ds = ds.batch(self.batch_size)
 
         return ds
