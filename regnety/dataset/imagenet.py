@@ -179,10 +179,7 @@ class ImageNet:
         Returns:
             example having keys 'image' and 'target'
         """
-        return {
-            "image": example["image"],
-            "target": tf.one_hot(example["label"], self.num_classes),
-        }
+        return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
     def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which

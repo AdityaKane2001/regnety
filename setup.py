@@ -1,7 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name = 'regnety',
-    package_dir = {'' : 'regnety'},
-    packages = ['utils', 'dataset','config','models']
+    packages = find_packages()
 )
