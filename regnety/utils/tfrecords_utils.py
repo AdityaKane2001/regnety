@@ -4,8 +4,6 @@ import tensorflow as tf
 import os
 import random
 import json
-import math
-import time
 
 from .image_utils import *
 from typing import Tuple, List
@@ -227,7 +225,6 @@ def make_tfrecs(
     synset_filepath: str = '',
     batch_size: int = 1024,
     logging_frequency: int = 1,
-    logging_gap: int = 3600,
     shuffle: bool = True
 ):
     """
@@ -247,8 +244,6 @@ def make_tfrecs(
             will contain these many examples.
         logging_frequency: 'Writing shard ..'  will be logged to stdout after
             these many shards are written.
-        logging_gap: Interval in seconds after which  '<num> shards written in 
-            <logging_gap> seconds' message will be printed.
         shuffle: True if dataset needs to be shuffled
     Returns None
     """
