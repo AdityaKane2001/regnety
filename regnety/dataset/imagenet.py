@@ -179,10 +179,7 @@ class ImageNet:
         Returns:
             example having keys 'image' and 'target'
         """
-        return {
-            "image": example["image"],
-            "target": tf.one_hot(example["label"], self.num_classes),
-        }
+        return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
     def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which
@@ -230,9 +227,11 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
         
-        # ds = ds.map(
-        #     lambda example: self._one_hot_encode_example(example),
-        #     num_parallel_calls = tf.data.AUTOTUNE
-        # )
+        ds = ds.map(
+            lambda example: self._one_hot_encode_example(example),
+            num_parallel_calls = tf.data.AUTOTUNE
+        )
+
+        ds = ds.batch(self.batch_size)
 
         return ds

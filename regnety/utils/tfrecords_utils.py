@@ -93,6 +93,7 @@ def _get_files(
     labels_dict = _get_synset_labels(synset_filepath)
 
     all_labels_int = [labels_dict[i][0] for i in all_synsets]
+    all_synsets = [labels_dict[i][1] for i in all_synsets]
 
     return all_images, all_labels_int, all_synsets
 
