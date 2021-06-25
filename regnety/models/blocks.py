@@ -21,7 +21,7 @@ class Stem(tf.keras.layers.Layer):
     """
 
     def __init__(self):
-
+        super(Stem, self).__init__()
         self.conv3x3 =  tf.keras.layers.Conv2D(32, (3,3), strides = 2)
         self.bn = tf.keras.layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001
@@ -45,8 +45,10 @@ class SE(tf.keras.layers.Layer):
 
     def __init__(self, 
         in_filters: int,
-        se_ratio: float = 0.25):
-
+        se_ratio: float = 0.25
+    ):
+        super(SE, self).__init__()
+        
         self.se_filters = int(in_filters * se_ratio)
         self.out_filters = in_filters
         self.ga_pool = tf.keras.layers.GlobalAveragePooling2D()
@@ -80,6 +82,8 @@ class YBlock(tf.keras.layers.Layer):
         out_filters:int,
         stride:int = 1
     ):
+        super(YBlock, self).__init__()
+
         self.group_width = group_width
         self.in_filters = in_filters
         self.out_filters = out_filters
@@ -91,9 +95,12 @@ class YBlock(tf.keras.layers.Layer):
         self.se = SE(out_filters)
         self.conv1x1_2 = tf.keras.layers.Conv2D(out_filters, (1,1))
 
-        self.bn1x1_1 = tf.keras.layers.BatchNormalization()
-        self.bn3x3 = tf.keras.layers.BatchNormalization()
-        self.bn1x1_2 = tf.keras.layers.BatchNormalization()
+        self.bn1x1_1 = tf.keras.layers.BatchNormalization(
+            momentum = 0.9, epsilon = 0.00001)
+        self.bn3x3 = tf.keras.layers.BatchNormalization(
+            momentum = 0.9, epsilon = 0.00001)
+        self.bn1x1_2 = tf.keras.layers.BatchNormalization(
+            momentum = 0.9, epsilon = 0.00001)
 
         self.relu1x1_1 = tf.keras.layers.ReLU()
         self.relu3x3 = tf.keras.layers.ReLU()
@@ -104,7 +111,7 @@ class YBlock(tf.keras.layers.Layer):
         self.bn_skip = None
         self.relu_skip = None
 
-        if (in_filters != out_filters) or (stride != 1):
+        if (in_filters != out_filters) and (stride != 1):
             self.skip_conv = tf.keras.layers.Conv2D(
                 out_filters, (1, 1), stride=stride)
             self.bn_skip = tf.keras.layers.BatchNormalization()
@@ -146,5 +153,44 @@ class YBlock(tf.keras.layers.Layer):
         return x
 
 
+class Stage(tf.keras.layers.Layer):
+    """
+    Class for RegNetY stage. 
+
+    Args:
+        depth: Depth of stage, number of blocks to use
+        group_width: Group width of all blocks in  this stage
+        in_filters: Input filters to this stage
+        out_filters: Output filters from this stage
+        
+    """
+
+    def __init__(
+        depth:int,
+        group_width:int,
+        in_filters:int,
+        out_filters:int
+    ):
+        super(Stage, self).__init__()
+
+        self.stage = []
+
+        self.stage.append(YBlock(group_width, in_filters, out_filters, stride = 2))
+
+        for _ in range(depth - 1):
+            self.stage.append(
+                YBlock(group_width, out_filters, out_filters, stride = 1)
+            )
+
+    def call(self, inputs):
+        x = inputs
+        for i in range(self.depth):
+            x = self.stage[i](x)
+        
+        return x
+
+
+class Head(tf.keras.layers.Layer):
+    pass
 
 
