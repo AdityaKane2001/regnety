@@ -124,11 +124,13 @@ def _make_image(filepath: str) -> Tuple[str, int, int]:
     if not is_rgb(image_tensor):
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
 
+    image_tensor = tf.cast(tf.image.resize(image_tensor, (512,512)), tf.uint8)
+
     image_str = tf.io.encode_jpeg(image_tensor)
 
     assert len(image_tensor.shape) == 3
 
-    return image_str, height, width
+    return image_str, 512, 512
 
 
 def _make_example(
