@@ -65,7 +65,7 @@ class ImageNet:
             Dict containing attributes from a single example. Follows
             the same names as TFRECORDS_FORMAT.
         """
-        image = tf.cast(tf.io.decode_jpeg(example["image"]), tf.float32)
+        image = tf.io.decode_jpeg(example["image"])
         height = example['height']
         width = example['width']
         filename = example["filename"]
@@ -86,7 +86,11 @@ class ImageNet:
         Returns:
             A tf.data.Dataset
         """
-        ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
+
+        files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+        ds = files.interleave(tf.data.TFRecordDataset, 
+          num_parallel_calls = tf.data.AUTOTUNE)
+        #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
             num_parallel_calls = tf.data.AUTOTUNE
@@ -95,7 +99,10 @@ class ImageNet:
             lambda example: self.decode_example(example), 
             num_parallel_calls = tf.data.AUTOTUNE 
         )
-        return ds
+        # options = tf.data.Options()
+        # options.experimental_threading.max_intra_op_parallelism = 4
+        # ds = ds.with_options(options)
+        return ds#.prefetch(tf.data.AUTOTUNE)
 
     def _scale_and_center_crop(self, 
         image: tf.Tensor,
@@ -117,8 +124,8 @@ class ImageNet:
 
         square_scaled_image = tf.image.resize_with_pad(image, 
             scale_size, scale_size) 
-        return tf.image.central_crop(
-            tf.cast(final_size, tf.float32) / scale_size)
+        return tf.image.central_crop(square_scaled_image, 
+            final_size / scale_size)
         
 
     def random_sized_crop(self, 
@@ -136,9 +143,9 @@ class ImageNet:
             Example of same format as _TFRECS_FORMAT
         """
 
-        image = tf.cast(example['image'], tf.float32)
-        h = tf.cast(example['height'], tf.int64)
-        w = tf.cast(example['width'], tf.int64)
+        image = example['image']
+        h = example['height']
+        w = example['width']
 
 
         bbox = tf.constant([0.0, 0.0, 1.0, 1.0], 
@@ -208,6 +215,8 @@ class ImageNet:
             }
         """
         ds = self._read_tfrecs()
+
+        
 
         if self.augment_fn == "default":
             ds = ds.map(
