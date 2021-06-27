@@ -11,13 +11,15 @@ from dataset import imagenet
 
 tf.keras.backend.clear_session()
 
-imgnet = imagenet.ImageNet(
-    [os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial')],
-    randaugment = True
 
+imgnet = imagenet.ImageNet(
+    tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
+    randaugment = True
 )
+
 ds = imgnet.make_dataset()
-ds = ds.prefetch(tf.data.AUTOTUNE)
+# ds = ds.prefetch(tf.data.AUTOTUNE)
+
 model = tf.keras.Sequential(
     [
      tf.keras.layers.InputLayer(input_shape = (224,224,3)),
@@ -36,10 +38,10 @@ logs = "logs/" + str(time.time())
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  histogram_freq = 1,
-                                                 profile_batch = '2,18')
+                                                 profile_batch = '2,49')
 
 model.fit(ds,
-          epochs=2,
-          steps_per_epoch = 20,
+          epochs=5,
+          steps_per_epoch = 10,
           #validation_data=ds_test,
           callbacks = [tboard_callback])

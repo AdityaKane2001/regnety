@@ -55,6 +55,7 @@ class ImageNet:
         if self.randaugment:
             self._augmenter = RandAugment(magnitude=5, num_layers=2)
 
+    @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
 
@@ -88,13 +89,31 @@ class ImageNet:
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+
         options = tf.data.Options()
+
+        #General Options
         options.experimental_deterministic = False
+        
+        # Threading Options
+        # options.experimental_threading.max_intra_op_parallelism = 4
+        
+        #Optimization Options
+        # options.experimental_optimization.apply_default_optimizations = True
+        # options.experimental_optimization.autotune = True
+        # options.experimental_optimization.autotune_buffers = True
+        # options.experimental_optimization.map_parallelization = True
+        # options.experimental_optimization.parallel_batch = False #can set
+
+
+        files = files.with_options(options)
+
         ds = files.interleave(tf.data.TFRecordDataset, 
-          num_parallel_calls = tf.data.AUTOTUNE,deterministic=False)
+          num_parallel_calls = tf.data.AUTOTUNE,
+          deterministic=False)
         # options.experimental_threading.max_intra_op_parallelism = 4
 
-        ds = ds.with_options(options)
+        
         #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
@@ -107,8 +126,8 @@ class ImageNet:
         # options = tf.data.Options()
         # options.experimental_threading.max_intra_op_parallelism = 4
         # ds = ds.with_options(options)
-
-        return ds.prefetch(tf.data.AUTOTUNE)
+        ds = ds.cache()
+        return ds
 
     def _scale_and_center_crop(self, 
         image: tf.Tensor,
@@ -133,7 +152,7 @@ class ImageNet:
         return tf.image.central_crop(square_scaled_image, 
             final_size / scale_size)
         
-
+    @tf.function
     def random_sized_crop(self, 
         example: dict,
         min_area: float = 0.08) -> dict:
@@ -182,6 +201,7 @@ class ImageNet:
             "synset": example["synset"],
         }
 
+    @tf.function
     def _one_hot_encode_example(self, example: dict) -> dict:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
@@ -194,6 +214,7 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
+    @tf.function
     def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which
         accepts examples as input instead of images. Uses magnitude = 5
@@ -205,8 +226,17 @@ class ImageNet:
         Returns:
             example in which RandAugment has been applied to the image
         """
-        example['image'] = self._augmenter.distort(example['image'])
-        return example
+        image = example['image']
+        image = self._augmenter.distort(image)
+        return {
+            "image": image,
+            "height": self.image_size,
+            "width": self.image_size,
+            "filename": example["filename"],
+            "label": example["label"],
+            "synset": example["synset"],
+        }
+
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
         """
@@ -248,5 +278,7 @@ class ImageNet:
         )
 
         ds = ds.batch(self.batch_size)
+
+        ds = ds.prefetch(tf.data.AUTOTUNE)
 
         return ds
