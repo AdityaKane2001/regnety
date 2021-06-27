@@ -1,15 +1,20 @@
-import tensorflow as tf
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+import tensorflow as tf
 import pandas as pd
 import numpy as np
 import time
 
 from dataset import imagenet
 
+
+
 tf.keras.backend.clear_session()
 
 imgnet = imagenet.ImageNet(
-    [os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial')]
+    [os.path.join('/content',i) for i in os.listdir('/content') if i.startswith('trial')],
+    randaugment = True
+
 )
 ds = imgnet.make_dataset()
 ds = ds.prefetch(tf.data.AUTOTUNE)
@@ -31,10 +36,10 @@ logs = "logs/" + str(time.time())
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  histogram_freq = 1,
-                                                 profile_batch = '2,8')
+                                                 profile_batch = '2,18')
 
 model.fit(ds,
           epochs=2,
-          steps_per_epoch = 10,
+          steps_per_epoch = 20,
           #validation_data=ds_test,
           callbacks = [tboard_callback])

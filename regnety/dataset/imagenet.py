@@ -88,8 +88,13 @@ class ImageNet:
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+        options = tf.data.Options()
+        options.experimental_deterministic = False
         ds = files.interleave(tf.data.TFRecordDataset, 
-          num_parallel_calls = tf.data.AUTOTUNE)
+          num_parallel_calls = tf.data.AUTOTUNE,deterministic=False)
+        # options.experimental_threading.max_intra_op_parallelism = 4
+
+        ds = ds.with_options(options)
         #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
@@ -102,7 +107,8 @@ class ImageNet:
         # options = tf.data.Options()
         # options.experimental_threading.max_intra_op_parallelism = 4
         # ds = ds.with_options(options)
-        return ds#.prefetch(tf.data.AUTOTUNE)
+
+        return ds.prefetch(tf.data.AUTOTUNE)
 
     def _scale_and_center_crop(self, 
         image: tf.Tensor,
