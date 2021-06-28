@@ -151,7 +151,41 @@ class ImageNet:
             scale_size, scale_size) 
         return tf.image.central_crop(square_scaled_image, 
             final_size / scale_size)
+    
+    def _get_boxes(self, aspect_ratio, area):
+        """
+        Returns crop boxes to be used in crop_and_resize
+        """
+        heights = tf.random.uniform((self.batch_size,), 
+            maxval = tf.math.sqrt(area) * aspect_ratio )
+        widths = heights / tf.math.square(aspect_ratio)
+
+        if tf.random.uniform(()) < 0.5 :
+            temp = heights
+            heights = widths
+            widths = temp
         
+        else:
+            temp = heights #for AutoGraph
+        
+        max_width = tf.math.reduce_max(widths)
+        max_height = tf.math.reduce_max(heights)
+
+        x1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_width/2 - 0.00001)
+        y1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_height/2 - 0.00001)
+
+        x2s = widths + x1s
+        y2s = heights + y1s
+
+        x2s = tf.clip_by_value(x2s, clip_value_min=0, clip_value_max=1.0)
+        y2s = tf.clip_by_value(y2s, clip_value_min=0, clip_value_max=1.0)
+
+        boxes = tf.stack([y1s, x1s, y2s, x2s])
+
+        boxes = tf.transpose(boxes)
+
+        return boxes
+
     @tf.function
     def random_sized_crop(self, 
         example: dict,
@@ -168,30 +202,45 @@ class ImageNet:
             Example of same format as _TFRECS_FORMAT
         """
 
+        # image = example['image']
+        # h = example['height']
+        # w = example['width']
+
+
+        # bbox = tf.constant([0.0, 0.0, 1.0, 1.0], 
+        #                  dtype=tf.float32,
+        #                  shape=[1, 1, 4])
+        
+
+        # crop_begin, crop_size, _ = tf.image.sample_distorted_bounding_box(
+        #    [h, w, 3],
+        #     bbox,
+        #     min_object_covered = 0.08,
+        #     area_range = [0.08, 1.0],
+        #     max_attempts = 10
+        # )
+
+        # distorted_image = tf.slice(image, crop_begin, crop_size)
+
+        # image = tf.image.resize(distorted_image, 
+        #     (self.image_size, self.image_size))
+
         image = example['image']
         h = example['height']
         w = example['width']
 
+        aspect_ratio = tf.random.uniform((), minval = 3./4., maxval = 4./3.)
+        area = tf.random.uniform((), minval = min_area, maxval = 1)
 
-        bbox = tf.constant([0.0, 0.0, 1.0, 1.0], 
-                         dtype=tf.float32,
-                         shape=[1, 1, 4])
-        
+        boxes = self._get_boxes(aspect_ratio, area)
 
-        crop_begin, crop_size, _ = tf.image.sample_distorted_bounding_box(
-           [h, w, 3],
-            bbox,
-            min_object_covered = 0.08,
-            area_range = [0.08, 1.0],
-            max_attempts = 10
+        image = tf.image.crop_and_resize(
+            image,
+            boxes,
+            tf.range(self.batch_size),
+            (self.image_size, self.image_size),
         )
 
-        distorted_image = tf.slice(image, crop_begin, crop_size)
-
-        image = tf.image.resize(distorted_image, 
-            (self.image_size, self.image_size))
-
-        
         return {
             "image": image,
             "height": self.image_size,
