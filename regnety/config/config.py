@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List,
+from typing import List
 
 @dataclass
 class RegNetYConfig:
@@ -21,6 +21,7 @@ class RegNetYConfig:
 
     name: str
     flops: str
+    num_classes: int
     depths: List[int]
     widths: List[int]
     group_width: int
@@ -32,7 +33,7 @@ class RegNetYConfig:
 
 
 
-def get_config(flops: str):
+def get_model_config(flops: str):
     """
     Getter function for configuration for a specific RegNetY model instance.
     User must provide flops in string format. Example "200MF", "800MF" 
@@ -56,6 +57,7 @@ def get_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 200MF",
             flops = "200MF",
+            num_classes = 1000,
             depths = [1, 1, 4, 7],
             widths = [24, 56, 152, 368],
             group_width = 8,
@@ -70,6 +72,7 @@ def get_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 400MF",
             flops = "400MF",
+            num_classes = 1000,
             depths = [1, 3, 3, 6],
             widths = [48, 104, 208, 440],
             group_width = 8,
@@ -84,6 +87,7 @@ def get_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 600MF",
             flops = "600MF",
+            num_classes = 1000,
             depths = [1, 3, 7, 4],
             widths = [48, 112, 256, 608],
             group_width = 16,
@@ -98,6 +102,7 @@ def get_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 800MF",
             flops = "800MF",
+            num_classes = 1000,
             depths = [1, 3, 8, 2],
             widths = [64, 128, 320, 768],
             group_width = 16,
@@ -107,4 +112,3 @@ def get_config(flops: str):
             w0 = 56,
             wm = 2.4
         )
-   

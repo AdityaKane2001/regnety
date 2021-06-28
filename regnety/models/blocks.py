@@ -52,15 +52,15 @@ class SE(tf.keras.layers.Layer):
         self.se_filters = int(in_filters * se_ratio)
         self.out_filters = in_filters
         self.ga_pool = tf.keras.layers.GlobalAveragePooling2D()
-        self.squeeze_conv = tf.keras.layers.Conv2D(se_filters, (1,1), activation = 'relu')
-        self.excite_conv = tf.keras.layers.Conv2D(out_filters, (1,1), activation = 'sigmoid')
+        self.squeeze_dense = tf.keras.layers.Dense(self.se_filters, activation = 'relu')
+        self.excite_dense = tf.keras.layers.Dense(self.out_filters,  activation = 'sigmoid')
         
-
     def call(self, inputs):
         # input shape: (h,w,out_filters)
-        x = self.ga_pool(x) #x: (1,1,out_filters)
-        x = self.squeeze_conv(x) #x: (1,1,se_filters)
-        x = self.excite_conv(x) #x: (1,1,out_filters)
+        x = self.ga_pool(inputs) #x: (out_filters)
+        x = self.squeeze_dense(x) #x: (se_filters)
+        x = self.excite_dense(x) #x: (out_filters)
+        x = tf.reshape(x, [-1,1,1,self.out_filters])
         x = tf.math.multiply(x, inputs) #x: (h,w,out_filters)
         return x
         
@@ -68,15 +68,17 @@ class SE(tf.keras.layers.Layer):
 class YBlock(tf.keras.layers.Layer):
     """
     Y Block in RegNetY structure. 
+    IMPORTANT: Grouped convolutions are only supported by keras on GPU. 
 
     Args:
-        group_width: Group width for 3x3 conv
+        group_width: Group width for 3x3 conv, in_filters and out_filters must
+             be divisible by this.
         in_filters: Input filters in this block
         out_filters: Output filters for this block
         stride: Stride for block
     """
 
-    def __init__(
+    def __init__(self,
         group_width:int,
         in_filters:int,
         out_filters:int,
@@ -111,18 +113,20 @@ class YBlock(tf.keras.layers.Layer):
         self.bn_skip = None
         self.relu_skip = None
 
-        if (in_filters != out_filters) and (stride != 1):
+        if (in_filters != out_filters) or (stride != 1):
             self.skip_conv = tf.keras.layers.Conv2D(
-                out_filters, (1, 1), stride=stride)
+                out_filters, (1, 1), strides=2)
             self.bn_skip = tf.keras.layers.BatchNormalization()
-            self.relu_skip =  = tf.keras.layers.ReLU()    
+            self.relu_skip = tf.keras.layers.ReLU()    
  
             self.conv3x3 = tf.keras.layers.Conv2D(
-                out_filters, (3, 3), stride = stride, groups = self.groups)
+                out_filters, (3, 3), strides = 2, groups = self.groups, 
+                padding = 'same')
  
         else:
             self.conv3x3 = tf.keras.layers.Conv2D(
-                out_filters, (3, 3), stride = 1, groups = self.groups)
+                out_filters, (3, 3), strides = 1, groups = self.groups, 
+                padding = 'same')
         
     
     def call(self, inputs):
@@ -151,6 +155,7 @@ class YBlock(tf.keras.layers.Layer):
         x = x + skip_tensor
 
         return x
+    
 
 
 class Stage(tf.keras.layers.Layer):
@@ -165,7 +170,7 @@ class Stage(tf.keras.layers.Layer):
         
     """
 
-    def __init__(
+    def __init__(self,
         depth:int,
         group_width:int,
         in_filters:int,
@@ -191,6 +196,19 @@ class Stage(tf.keras.layers.Layer):
 
 
 class Head(tf.keras.layers.Layer):
-    pass
+    """
+    Head for all RegNetY models
+    """
+    def __init__(self, num_classes):
+        super(Head, self).__init__()
+
+        self.gap = tf.keras.layers.GlobalAveragePooling2D()
+        self.fc = tf.keras.layers.Dense(num_classes, activation = 'sigmoid')
+    
+    def call(self, inputs):
+        x = self.gap(inputs)
+        x = self.fc(x)
+        return x 
+
 
 
