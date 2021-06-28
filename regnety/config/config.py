@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 
+ALLOWED_FLOPS = ('200mf', '400mf', '600mf', '800mf')
+
 @dataclass
 class RegNetYConfig:
     """
@@ -48,10 +50,10 @@ def get_model_config(flops: str):
     if flops == "":
         raise ValueError("Please enter `flops` argument.")
     
-    allowed_flops = ['200mf', '400mf', '600mf', '800mf']
+    
 
-    if flops.lower() not in allowed_flops:
-        raise ValueError("`flops` must be one of " + str(allowed_flops))
+    if flops.lower() not in ALLOWED_FLOPS:
+        raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
     
     if flops.lower() == '200mf':
         return RegNetYConfig(
