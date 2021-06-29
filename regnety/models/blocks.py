@@ -177,6 +177,8 @@ class Stage(tf.keras.layers.Layer):
         out_filters:int
     ):
         super(Stage, self).__init__()
+        
+        self.depth = depth
 
         self.stage = []
 
@@ -197,7 +199,10 @@ class Stage(tf.keras.layers.Layer):
 
 class Head(tf.keras.layers.Layer):
     """
-    Head for all RegNetY models
+    Head for all RegNetY models.
+
+    Args:
+        num_classes: Integer specifying number of classes of data. 
     """
     def __init__(self, num_classes):
         super(Head, self).__init__()

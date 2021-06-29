@@ -1,11 +1,23 @@
 from dataclasses import dataclass
+<<<<<<< HEAD
 from typing import List
+
+ALLOWED_FLOPS = ('200mf', '400mf', '600mf', '800mf')
 
 @dataclass
 class RegNetYConfig:
     """
     Dataclass for architecture configuration for RegNetY.
 
+=======
+from typing import List,
+
+@dataclass
+class RegNetYConfig:
+    """
+    Dataclass for architecture configuration for RegNetY.
+
+>>>>>>> e4914bf (Added config.py)
     Args:
         name: Name of the model eg. "RegNetY200MF"
         flops: Flops of the model eg. "400MF"
@@ -21,7 +33,10 @@ class RegNetYConfig:
 
     name: str
     flops: str
+<<<<<<< HEAD
     num_classes: int
+=======
+>>>>>>> e4914bf (Added config.py)
     depths: List[int]
     widths: List[int]
     group_width: int
@@ -33,7 +48,11 @@ class RegNetYConfig:
 
 
 
+<<<<<<< HEAD
 def get_model_config(flops: str):
+=======
+def get_config(flops: str):
+>>>>>>> e4914bf (Added config.py)
     """
     Getter function for configuration for a specific RegNetY model instance.
     User must provide flops in string format. Example "200MF", "800MF" 
@@ -48,16 +67,26 @@ def get_model_config(flops: str):
     if flops == "":
         raise ValueError("Please enter `flops` argument.")
     
+<<<<<<< HEAD
+    
+
+    if flops.lower() not in ALLOWED_FLOPS:
+        raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
+=======
     allowed_flops = ['200mf', '400mf', '600mf', '800mf']
 
     if flops.lower() not in allowed_flops:
         raise ValueError("`flops` must be one of " + str(allowed_flops))
+>>>>>>> e4914bf (Added config.py)
     
     if flops.lower() == '200mf':
         return RegNetYConfig(
             name = "RegNetY 200MF",
             flops = "200MF",
+<<<<<<< HEAD
             num_classes = 1000,
+=======
+>>>>>>> e4914bf (Added config.py)
             depths = [1, 1, 4, 7],
             widths = [24, 56, 152, 368],
             group_width = 8,
@@ -72,7 +101,10 @@ def get_model_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 400MF",
             flops = "400MF",
+<<<<<<< HEAD
             num_classes = 1000,
+=======
+>>>>>>> e4914bf (Added config.py)
             depths = [1, 3, 3, 6],
             widths = [48, 104, 208, 440],
             group_width = 8,
@@ -87,7 +119,10 @@ def get_model_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 600MF",
             flops = "600MF",
+<<<<<<< HEAD
             num_classes = 1000,
+=======
+>>>>>>> e4914bf (Added config.py)
             depths = [1, 3, 7, 4],
             widths = [48, 112, 256, 608],
             group_width = 16,
@@ -102,7 +137,10 @@ def get_model_config(flops: str):
         return RegNetYConfig(
             name = "RegNetY 800MF",
             flops = "800MF",
+<<<<<<< HEAD
             num_classes = 1000,
+=======
+>>>>>>> e4914bf (Added config.py)
             depths = [1, 3, 8, 2],
             widths = [64, 128, 320, 768],
             group_width = 16,
@@ -112,3 +150,7 @@ def get_model_config(flops: str):
             w0 = 56,
             wm = 2.4
         )
+<<<<<<< HEAD
+=======
+   
+>>>>>>> e4914bf (Added config.py)
