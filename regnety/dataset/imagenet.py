@@ -22,7 +22,6 @@ class ImageNet:
     augmentations are applied to the dataset:
     - Random sized crop (train only)
     - Scale and center crop (validation and test only)
-
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
         batch_size: batch_size for the Dataset
@@ -58,10 +57,8 @@ class ImageNet:
     @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
-
         Args:
             example: A TFRecord dataset example.
-
         Returns:
             Dict containing attributes from a single example. Follows
             the same names as TFRECORDS_FORMAT.
@@ -83,19 +80,25 @@ class ImageNet:
 
     def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
-
         Returns:
             A tf.data.Dataset
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+
         options = tf.data.Options()
+
+        #General Options
         options.experimental_deterministic = False
+
+        files = files.with_options(options)
+
         ds = files.interleave(tf.data.TFRecordDataset, 
-          num_parallel_calls = tf.data.AUTOTUNE,deterministic=False)
+          num_parallel_calls = tf.data.AUTOTUNE,
+          deterministic=False)
         # options.experimental_threading.max_intra_op_parallelism = 4
 
-        ds = ds.with_options(options)
+        
         #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
@@ -105,10 +108,9 @@ class ImageNet:
             lambda example: self.decode_example(example), 
             num_parallel_calls = tf.data.AUTOTUNE 
         )
-        # options = tf.data.Options()
-        # options.experimental_threading.max_intra_op_parallelism = 4
-        # ds = ds.with_options(options)
+
         ds = ds.cache()
+        ds = ds.batch(self.batch_size)
         return ds
 
     def _scale_and_center_crop(self, 
@@ -122,7 +124,6 @@ class ImageNet:
             image: tensor of the image
             scale_size: Size of image to scale to
             final_size: Size of final image
-
         Returns:
             Tensor of shape (final_size, final_size, 3)
         """
@@ -175,37 +176,12 @@ class ImageNet:
         """
         Takes a random crop of image having a random aspect ratio. Resizes it 
         to self.image_size. Aspect ratio is NOT maintained. 
-
         Args:
             example: A dataset example dict.
             min_area: Minimum area of image to be used
-
         Returns:
             Example of same format as _TFRECS_FORMAT
         """
-
-        # image = example['image']
-        # h = example['height']
-        # w = example['width']
-
-
-        # bbox = tf.constant([0.0, 0.0, 1.0, 1.0], 
-        #                  dtype=tf.float32,
-        #                  shape=[1, 1, 4])
-        
-
-        # crop_begin, crop_size, _ = tf.image.sample_distorted_bounding_box(
-        #    [h, w, 3],
-        #     bbox,
-        #     min_object_covered = 0.08,
-        #     area_range = [0.08, 1.0],
-        #     max_attempts = 10
-        # )
-
-        # distorted_image = tf.slice(image, crop_begin, crop_size)
-
-        # image = tf.image.resize(distorted_image, 
-        #     (self.image_size, self.image_size))
 
         image = example['image']
         h = example['height']
@@ -220,7 +196,7 @@ class ImageNet:
             image,
             boxes,
             tf.range(self.batch_size),
-            (self.image_size, self.image_size),
+            (self.image_size[0], self.image_size[0]),
         )
 
         return {
@@ -236,10 +212,8 @@ class ImageNet:
     def _one_hot_encode_example(self, example: dict) -> dict:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
-
         Args:
             example: an example having keys 'image' and 'label'
-
         Returns:
             example having keys 'image' and 'target'
         """
@@ -250,10 +224,8 @@ class ImageNet:
         """Wrapper for tf vision's RandAugment.distort function which
         accepts examples as input instead of images. Uses magnitude = 5
         as per pycls/pycls/datasets/augment.py#L29.
-
         Args:
             example: Example having the key 'image'
-
         Returns:
             example in which RandAugment has been applied to the image
         """
@@ -273,7 +245,6 @@ class ImageNet:
         """
         Function to apply all preprocessing and augmentations on dataset using
         dataset.map().
-
         Returns:
             Dataset having the final format as follows:
             {
