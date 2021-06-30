@@ -89,31 +89,13 @@ class ImageNet:
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
-
         options = tf.data.Options()
-
-        #General Options
         options.experimental_deterministic = False
-        
-        # Threading Options
-        # options.experimental_threading.max_intra_op_parallelism = 4
-        
-        #Optimization Options
-        # options.experimental_optimization.apply_default_optimizations = True
-        # options.experimental_optimization.autotune = True
-        # options.experimental_optimization.autotune_buffers = True
-        # options.experimental_optimization.map_parallelization = True
-        # options.experimental_optimization.parallel_batch = False #can set
-
-
-        files = files.with_options(options)
-
         ds = files.interleave(tf.data.TFRecordDataset, 
-          num_parallel_calls = tf.data.AUTOTUNE,
-          deterministic=False)
+          num_parallel_calls = tf.data.AUTOTUNE,deterministic=False)
         # options.experimental_threading.max_intra_op_parallelism = 4
 
-        
+        ds = ds.with_options(options)
         #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
