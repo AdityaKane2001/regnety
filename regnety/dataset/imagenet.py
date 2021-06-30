@@ -55,6 +55,7 @@ class ImageNet:
         if self.randaugment:
             self._augmenter = RandAugment(magnitude=5, num_layers=2)
 
+    @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
 
@@ -93,6 +94,17 @@ class ImageNet:
 
         #General Options
         options.experimental_deterministic = False
+        
+        # Threading Options
+        # options.experimental_threading.max_intra_op_parallelism = 4
+        
+        #Optimization Options
+        # options.experimental_optimization.apply_default_optimizations = True
+        # options.experimental_optimization.autotune = True
+        # options.experimental_optimization.autotune_buffers = True
+        # options.experimental_optimization.map_parallelization = True
+        # options.experimental_optimization.parallel_batch = False #can set
+
 
         files = files.with_options(options)
 
@@ -111,9 +123,10 @@ class ImageNet:
             lambda example: self.decode_example(example), 
             num_parallel_calls = tf.data.AUTOTUNE 
         )
-
+        # options = tf.data.Options()
+        # options.experimental_threading.max_intra_op_parallelism = 4
+        # ds = ds.with_options(options)
         ds = ds.cache()
-        ds = ds.batch(self.batch_size)
         return ds
 
     def _scale_and_center_crop(self, 
@@ -237,6 +250,7 @@ class ImageNet:
             "synset": example["synset"],
         }
 
+    @tf.function
     def _one_hot_encode_example(self, example: dict) -> dict:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
@@ -249,6 +263,7 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
+    @tf.function
     def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which
         accepts examples as input instead of images. Uses magnitude = 5
@@ -260,8 +275,17 @@ class ImageNet:
         Returns:
             example in which RandAugment has been applied to the image
         """
-        example['image'] = self._augmenter.distort(example['image'])
-        return example
+        image = example['image']
+        image = self._augmenter.distort(image)
+        return {
+            "image": image,
+            "height": self.image_size,
+            "width": self.image_size,
+            "filename": example["filename"],
+            "label": example["label"],
+            "synset": example["synset"],
+        }
+
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
         """
@@ -303,5 +327,7 @@ class ImageNet:
         )
 
         
+
+        ds = ds.prefetch(tf.data.AUTOTUNE)
 
         return ds
