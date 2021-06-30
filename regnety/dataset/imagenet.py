@@ -48,7 +48,7 @@ class ImageNet:
             raise ValueError("List of TFrecords paths cannot be None or empty")
         self.tfrecs_filepath = tfrecs_filepath
         self.batch_size = batch_size
-        self.image_size = image_size
+        self.image_size = tf.constant([image_size] * self.batch_size) 
         self.augment_fn = augment_fn
         self.num_classes = num_classes
         self.randaugment = randaugment
@@ -86,7 +86,23 @@ class ImageNet:
         Returns:
             A tf.data.Dataset
         """
-        ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
+
+        files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+
+        options = tf.data.Options()
+
+        #General Options
+        options.experimental_deterministic = False
+
+        files = files.with_options(options)
+
+        ds = files.interleave(tf.data.TFRecordDataset, 
+          num_parallel_calls = tf.data.AUTOTUNE,
+          deterministic=False)
+        # options.experimental_threading.max_intra_op_parallelism = 4
+
+        
+        #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
             num_parallel_calls = tf.data.AUTOTUNE
@@ -95,6 +111,9 @@ class ImageNet:
             lambda example: self.decode_example(example), 
             num_parallel_calls = tf.data.AUTOTUNE 
         )
+
+        ds = ds.cache()
+        ds = ds.batch(self.batch_size)
         return ds
 
     def _scale_and_center_crop(self, 
@@ -136,28 +155,21 @@ class ImageNet:
             Example of same format as _TFRECS_FORMAT
         """
 
-        image = tf.cast(example['image'], tf.float32)
-        h = tf.cast(example['height'], tf.int64)
-        w = tf.cast(example['width'], tf.int64)
+        image = example['image']
+        h = example['height']
+        w = example['width']
 
-
-        bbox = tf.constant([0.0, 0.0, 1.0, 1.0], 
-                         dtype=tf.float32,
-                         shape=[1, 1, 4])
-        
-
-        crop_begin, crop_size, _ = tf.image.sample_distorted_bounding_box(
-           [h, w, 3],
-            bbox,
-            min_object_covered = 0.08,
-            area_range = [0.08, 1.0],
-            max_attempts = 10
-        )
+        aspect_ratio = tf.random.uniform((), minval = 3./4., maxval = 4./3.)
+        area = tf.random.uniform((), minval = min_area, maxval = 1)
 
         distorted_image = tf.slice(image, crop_begin, crop_size)
 
-        image = tf.image.resize(distorted_image, 
-            (self.image_size, self.image_size))
+        image = tf.image.crop_and_resize(
+            image,
+            boxes,
+            tf.range(self.batch_size),
+            (self.image_size[0], self.image_size[0]),
+        )
 
         
         return {
@@ -209,6 +221,8 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
 
+        #batch shape: (128, 512, 512, 3)
+
         if self.augment_fn == "default":
             ds = ds.map(
                 lambda example: self.random_sized_crop(example),
@@ -221,17 +235,17 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
 
-        if self.randaugment:
-            ds = ds.map(
-                lambda example: self._randaugment(example),
-                num_parallel_calls = tf.data.AUTOTUNE
-            )
+        # if self.randaugment:
+        #     ds = ds.map(
+        #         lambda example: self._randaugment(example),
+        #         num_parallel_calls = tf.data.AUTOTUNE
+        #     )
         
         ds = ds.map(
             lambda example: self._one_hot_encode_example(example),
             num_parallel_calls = tf.data.AUTOTUNE
         )
 
-        ds = ds.batch(self.batch_size)
+        
 
         return ds
