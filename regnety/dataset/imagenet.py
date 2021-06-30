@@ -66,7 +66,7 @@ class ImageNet:
             Dict containing attributes from a single example. Follows
             the same names as TFRECORDS_FORMAT.
         """
-        image = tf.cast(tf.io.decode_jpeg(example["image"]), tf.float32)
+        image = tf.io.decode_jpeg(example["image"])
         height = example['height']
         width = example['width']
         filename = example["filename"]
