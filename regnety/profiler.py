@@ -4,6 +4,8 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import time
+from PIL import Image
+
 
 from dataset import imagenet
 
@@ -14,13 +16,16 @@ tf.keras.backend.clear_session()
 
 imgnet = imagenet.ImageNet(
     tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
-    randaugment = True
+    randaugment = True,
+    batch_size = 1
 )
 
 ds = imgnet.make_dataset()
 # ds = ds.prefetch(tf.data.AUTOTUNE)
 for i in ds.take(1):
-    print(i)
+    im = Image.fromarray(i[0][0].numpy())
+    im.save("your_file.jpeg")   
+    
 
 
 model = tf.keras.Sequential(

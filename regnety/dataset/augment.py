@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -120,9 +121,9 @@ class WeakRandAugment:
             Tensor of shape (batch_size, image_size, image_size, channels)        
         """
         mask_size = (224 * self.strength) / 100.
-        mask_size = tf.cast(tf.math.round(mask_size), tf.int32)
-        if mask_size % 2 != 0:
-            mask_size += 1
+        mask_size = tf.cast(tf.math.ceil(mask_size), tf.int32)
+        
+        mask_size = tf.cond(mask_size % 2 == 0,lambda: mask_size,lambda:mask_size + 1)
         
         aug_images = tfa.image.random_cutout(images, mask_size, constant_values = 128.)
         return aug_images
@@ -139,7 +140,7 @@ class WeakRandAugment:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
         
-        return tfa.image.equalize(images, bins = 255)
+        return tfa.image.equalize(images, bins = 256)
 
 
     def invert(self, images:tf.Tensor) -> tf.Tensor:
@@ -166,8 +167,8 @@ class WeakRandAugment:
         """
         
         PI = tf.constant(3.141592653589793)
-        angles = tf.random.uniform((self.batch_size,)) * PI/2
-        return tfa.image.rotate(images, angles, fill_value = tf.constant([128.]))
+        angles = tf.random.uniform(()) * PI/2
+        return tfa.image.rotate(images, angles, fill_value = 128.)
 
 
     def sharpen(self, images:tf.Tensor) -> tf.Tensor:
@@ -213,7 +214,7 @@ class WeakRandAugment:
         
         """
         level = self.strength / 10.
-        replace = tf.constant([128.])
+        replace = tf.constant([128.,])
         return tfa.image.shear_y(images, level, replace)
 
 
@@ -286,11 +287,9 @@ class WeakRandAugment:
             A list having num_augs entries having integers representing 
             augmentations to be applied.
         """
-        augs = tf.random.uniform(shape = (self.num_augs,),
-            minval = 0, maxval = 12, dtype = tf.int32)
-        augs = tf.sort(augs)
-        augs = tf.data.Dataset.from_tensor_slices(augs)
-        return augs
+        augs = np.random.randint(0, high = 8, size = (self.batch_size,))
+        augs = np.sort(augs)
+        return augs.tolist()
 
 
     def apply_augs(self, images: tf.Tensor) -> tf.Tensor:
@@ -305,46 +304,70 @@ class WeakRandAugment:
         """
         
         aug_images = tf.cast(images, tf.float32)
+        aug_functions = self.get_aug_list()
         tf.autograph.experimental.set_loop_options(
         shape_invariants=[(aug_images, tf.TensorShape([128, 224, 224, 3]))])
 
         for i in self.augs:
-            # if i == 0:
+            aug_images = tf.clip_by_value(
+                aug_functions[i](aug_images), clip_value_min=0, clip_value_max=255)
+
+            # if i == tf.constant():
             #     aug_images = self.color_degrade(aug_images)
             
-            if i == 1:
-                aug_images = self.color_jitter(aug_images)
+            # if i == tf.constant(1):
+            #     aug_images = self.color_jitter(aug_images)
             
-            if i == 2:
-                aug_images = self.cutout(aug_images)
+            # if i == tf.constant(2):
+            #     aug_images = self.cutout(aug_images)
             
-            # if i == 3:
+            # if i == tf.constant(3):
             #     aug_images = self.equalize(aug_images)
             
-            if i == 4:
-                aug_images = self.invert(aug_images)
+            # if i == tf.constant(4):
+            #     aug_images = self.invert(aug_images)
             
-            if i == 5:
-                aug_images = self.rotate(aug_images)
+            # if i == tf.constant(5):
+            #     aug_images = self.rotate(aug_images)
             
-            # if i == 6:
+            # if i == tf.constant(6):
             #     aug_images = self.sharpen(aug_images)
             
-            # if i == 7:
+            # if i == tf.constant(7):
             #     aug_images = self.shear_x(aug_images)
             
-            # if i == 8:
+            # if i == tf.constant(8):
             #     aug_images = self.shear_y(aug_images)
             
-            if i == 9:
-                aug_images = self.solarize(aug_images)
+            # if i == tf.constant(9):
+            #     aug_images = self.solarize(aug_images)
             
-            if i == 10:
-                aug_images = self.translate_x(aug_images)
+            # if i == tf.constant(10):
+            #     aug_images = self.translate_x(aug_images)
             
-            if i == 11:
-                aug_images = self.translate_y(aug_images)
+            # if i == tf.constant(11):
+            #     aug_images = self.translate_y(aug_images)
             
         return tf.cast(aug_images, tf.uint8)
 
 
+    def get_aug_list(self) -> dict:
+        """
+        Returns a callable given augment index. All augmentations are
+        randomized, thus `random_` is omitted from alll function names.
+
+        Args: 
+
+        """
+        augs = dict()
+        augs[0] = self.color_degrade
+        augs[1] = self.color_jitter
+        augs[2] = self.cutout
+        augs[3] = self.equalize
+        augs[4] = self.invert
+        augs[5] = self.rotate
+        augs[6] = self.sharpen    
+        augs[7] = self.solarize
+        
+
+        return augs
