@@ -1,6 +1,7 @@
+import os
 import tensorflow as tf
 import tensorflow_addons as tfa
-import os
+
 from typing import Union, Callable, Tuple, List, Type
 
 class WeakRandAugment:
@@ -27,13 +28,38 @@ class WeakRandAugment:
     """
     def __init__(self,
                  num_augs: int = 2,
-                 strength: int = 5):
+                 strength: int = 5,
+                 batch_size: int = 128):
 
         if num_augs < 1 or num_augs > 3:
             raise ValueError("`num_augs` must be between 1 and 3")
         self.num_augs = tf.constant(num_augs, dtype = tf.int32)
         self.strength = tf.constant(strength, dtype = tf.float32)
+        self.batch_size = batch_size
         self.augs =  self._get_augs(num_augs)
+
+
+    def blend(image1:tf.Tensor, image2:tf.Tensor, factor:tf.Tensor) -> tf.Tensor:
+        """
+        Blends two batches of images by a factor. Factor must be a
+        Tensor of shape (batch_size,1,1,1)
+
+        Args:
+            image1: One of the images to be mixed
+            image2: One of the images to be mixed
+            factor: This amount of image1 will be taken in the mix. 1-factor
+                will be amount image2 will be taken in the mix.
+        
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+        if tf.rank(factor) < 4:
+            raise ValueError(
+                "Rank of `factor` is less than 4. Factor must have the shape (batch_size, 1, 1, 1)")
+        
+        aug_image = image1 * factor + image2 * (1. - factor)
+
+        return aug_image
 
 
     def color_jitter(self, images: tf.Tensor) -> tf.Tensor:
@@ -64,7 +90,131 @@ class WeakRandAugment:
 
         return aug_images
     
+
+    def color_degradation(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Converts RGB to grayscale and back.
+
+        Args:
+            images: Batch of images
+
+        Returns:
+           Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        factor = tf.random.uniform((self.batch_size,1,1,1))
+        degenerate = tf.image.grayscale_to_rgb(tf.image.rgb_to_grayscale(image))
+        return self.blend(degenerate, image, factor)
+
+
+    def cutout(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Applies random cutout to images. 
+        
+        Args:
+            images: batch of images to apply cutout to
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)        
+        """
+        mask_size = (224 * self.strength) / 100.
+        mask_size = tf.math.round(mask_size)
+        if mask_size % 2 != 0:
+            mask_size += 1
+        
+        aug_images = tfa.image.random_cutout(images, mask_size, constant_values = 128.)
+        return aug_images
     
+
+    def equalize(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Applies equalize augmentation to images
+
+        Args:
+            images: batch of images to apply equalize to
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        return tfa.image.equalize(images, bins = 256)
+
+
+    def invert(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Inverts given images
+
+        Args:
+            images: batch of images to invert
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+        return 255. - images
+
+    def rotate(self, images: tf.tenosr) -> tf.Tensor:
+        """
+        Randomly rotates given images
+
+        Args:
+            images: batch of images to randomly rotate
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+        
+        PI = tf.constant(3.141592653589793)
+        angles = tf.random.uniform((self.batch_size)) * PI/2
+        return tfa.rotate(images, angles, fill_value = tf.constant([128.]))
+
+
+    def sharpen(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Sharpens the images by a random factor
+
+        Args:
+            images: batch of images to randomly rotate
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        factor = tf.random.uniform((),minval = 0.01, maxval = 1) * self.strength
+        return tfa.image.sharpness(images, factor)
+    
+
+    def shear_x(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Randomly shears the images in X direction
+
+        Args:
+            images: batch of images to randomly shear in X direction
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        
+        """
+        level = self.strength / 10.
+        replace = tf.constant([128.])
+        return tfa.image.shear_x(images, level, replace)
+    
+
+    def shear_y(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Randomly shears the images in Y direction
+
+        Args:
+            images: batch of images to randomly shear in Y direction
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        
+        """
+        level = self.strength / 10.
+        replace = tf.constant([128.])
+        return tfa.image.shear_y(images, level, replace)
+
+
     def _get_augs(self) -> tf.Tensor :
         """
         Randomly selects num_augs augmentations for the batch
