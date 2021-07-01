@@ -289,6 +289,7 @@ class WeakRandAugment:
         augs = tf.random.uniform(shape = (self.num_augs,),
             minval = 0, maxval = 12, dtype = tf.int32)
         augs = tf.sort(augs)
+        augs = tf.data.Dataset.from_tensor_slices(augs)
         return augs
 
 
