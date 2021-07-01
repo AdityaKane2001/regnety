@@ -19,6 +19,9 @@ imgnet = imagenet.ImageNet(
 
 ds = imgnet.make_dataset()
 # ds = ds.prefetch(tf.data.AUTOTUNE)
+for i in ds.take(1):
+    print(i)
+
 
 model = tf.keras.Sequential(
     [

@@ -28,18 +28,18 @@ class WeakRandAugment:
     """
     def __init__(self,
                  num_augs: int = 2,
-                 strength: int = 5,
+                 strength: float = 5.,
                  batch_size: int = 128):
 
         if num_augs < 1 or num_augs > 3:
             raise ValueError("`num_augs` must be between 1 and 3")
         self.num_augs = tf.constant(num_augs, dtype = tf.int32)
-        self.strength = tf.constant(strength, dtype = tf.float32)
+        self.strength = strength
         self.batch_size = batch_size
-        self.augs =  self._get_augs(num_augs)
+        self.augs =  self._get_augs()
 
 
-    def blend(image1:tf.Tensor, image2:tf.Tensor, factor:tf.Tensor) -> tf.Tensor:
+    def blend(self, image1:tf.Tensor, image2:tf.Tensor, factor:tf.Tensor) -> tf.Tensor:
         """
         Blends two batches of images by a factor. Factor must be a
         Tensor of shape (batch_size,1,1,1)
@@ -53,11 +53,13 @@ class WeakRandAugment:
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
-        if tf.rank(factor) < 4:
+        try:
+            aug_image = image1 * factor + image2 * (1. - factor)
+
+        except:
             raise ValueError(
-                "Rank of `factor` is less than 4. Factor must have the shape (batch_size, 1, 1, 1)")
+                "Factor must have the shape (batch_size, 1, 1, 1). Got shape", tf.shape(factor))
         
-        aug_image = image1 * factor + image2 * (1. - factor)
 
         return aug_image
 
@@ -75,11 +77,11 @@ class WeakRandAugment:
         """
         
         brightness_delta = self.strength * 0.1
-        contrast_lower = 1 - 0.5 * self.strength
-        contrast_upper = 1 + 0.5 * self.strength
+        contrast_lower = 1 - 0.5 * (self.strength /10.)
+        contrast_upper = 1 + 0.5 * (self.strength /10.)
         hue_delta = self.strength * 0.05
-        saturation_lower = 1 - 0.5 * self.strength
-        saturation_upper = (1 - 0.5 * self.strength) * 5
+        saturation_lower = 1 - 0.5 * (self.strength /10.)
+        saturation_upper = (1 - 0.5 * (self.strength /10.)) * 5
         
         aug_images = tf.image.random_brightness(images, brightness_delta)
         aug_images = tf.image.random_contrast(aug_images, contrast_lower, 
@@ -103,8 +105,8 @@ class WeakRandAugment:
         """
 
         factor = tf.random.uniform((self.batch_size,1,1,1))
-        degenerate = tf.image.grayscale_to_rgb(tf.image.rgb_to_grayscale(image))
-        return self.blend(degenerate, image, factor)
+        degenerate = tf.image.grayscale_to_rgb(tf.image.rgb_to_grayscale(images))
+        return self.blend(degenerate, images, factor)
 
 
     def cutout(self, images: tf.Tensor) -> tf.Tensor:
@@ -118,7 +120,7 @@ class WeakRandAugment:
             Tensor of shape (batch_size, image_size, image_size, channels)        
         """
         mask_size = (224 * self.strength) / 100.
-        mask_size = tf.math.round(mask_size)
+        mask_size = tf.cast(tf.math.round(mask_size), tf.int32)
         if mask_size % 2 != 0:
             mask_size += 1
         
@@ -136,8 +138,8 @@ class WeakRandAugment:
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
-
-        return tfa.image.equalize(images, bins = 256)
+        
+        return tfa.image.equalize(images, bins = 255)
 
 
     def invert(self, images:tf.Tensor) -> tf.Tensor:
@@ -152,7 +154,7 @@ class WeakRandAugment:
         """
         return 255. - images
 
-    def rotate(self, images: tf.tenosr) -> tf.Tensor:
+    def rotate(self, images: tf.Tensor) -> tf.Tensor:
         """
         Randomly rotates given images
 
@@ -164,8 +166,8 @@ class WeakRandAugment:
         """
         
         PI = tf.constant(3.141592653589793)
-        angles = tf.random.uniform((self.batch_size)) * PI/2
-        return tfa.rotate(images, angles, fill_value = tf.constant([128.]))
+        angles = tf.random.uniform((self.batch_size,)) * PI/2
+        return tfa.image.rotate(images, angles, fill_value = tf.constant([128.]))
 
 
     def sharpen(self, images:tf.Tensor) -> tf.Tensor:
@@ -228,10 +230,10 @@ class WeakRandAugment:
 
         solarized = tf.where(images < 128., images, 255. - images)
 
-        factor = tf.constant([self.stength / 10.] * self.batch_size)
-        factor = tf.reshape(factor, (self.image_size, 1, 1, 1))
+        # factor = tf.constant([self.strength / 10.] * self.batch_size)
+        # factor = tf.reshape(factor, (self.image_size, 1, 1, 1))
 
-        return self.blend(solarized, images, factor)
+        return solarized
 
 
     def translate_x(self, images:tf.Tensor) -> tf.Tensor:
@@ -302,10 +304,12 @@ class WeakRandAugment:
         """
         
         aug_images = tf.cast(images, tf.float32)
+        tf.autograph.experimental.set_loop_options(
+        shape_invariants=[(aug_images, tf.TensorShape([128, 224, 224, 3]))])
 
         for i in self.augs:
-            if i == 0:
-                aug_images = self.color_degrade(aug_images)
+            # if i == 0:
+            #     aug_images = self.color_degrade(aug_images)
             
             if i == 1:
                 aug_images = self.color_jitter(aug_images)
@@ -313,8 +317,8 @@ class WeakRandAugment:
             if i == 2:
                 aug_images = self.cutout(aug_images)
             
-            if i == 3:
-                aug_images = self.equalize(aug_images)
+            # if i == 3:
+            #     aug_images = self.equalize(aug_images)
             
             if i == 4:
                 aug_images = self.invert(aug_images)
@@ -322,14 +326,14 @@ class WeakRandAugment:
             if i == 5:
                 aug_images = self.rotate(aug_images)
             
-            if i == 6:
-                aug_images = self.sharpen(aug_images)
+            # if i == 6:
+            #     aug_images = self.sharpen(aug_images)
             
-            if i == 7:
-                aug_images = self.shear_x(aug_images)
+            # if i == 7:
+            #     aug_images = self.shear_x(aug_images)
             
-            if i == 8:
-                aug_images = self.shear_y(aug_images)
+            # if i == 8:
+            #     aug_images = self.shear_y(aug_images)
             
             if i == 9:
                 aug_images = self.solarize(aug_images)

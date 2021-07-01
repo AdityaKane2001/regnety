@@ -1,7 +1,7 @@
 import tensorflow as tf
 import os
 
-from dataclasses import dataclass
+from regnety.regnety.dataset.augment import WeakRandAugment
 from official.vision.image_classification.augment import RandAugment
 from typing import Union, Callable, Tuple, List, Type
 
@@ -52,7 +52,7 @@ class ImageNet:
         self.num_classes = num_classes
         self.randaugment = randaugment
         if self.randaugment:
-            self._augmenter = RandAugment(magnitude=5, num_layers=2)
+            self._augmenter = WeakRandAugment(strength=5, num_augs=2)
 
     @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
@@ -230,7 +230,7 @@ class ImageNet:
             example in which RandAugment has been applied to the image
         """
         image = example['image']
-        image = self._augmenter.distort(image)
+        image = self._augmenter.apply_augs(image)
         return {
             "image": image,
             "height": self.image_size,
@@ -268,11 +268,11 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
 
-        # if self.randaugment:
-        #     ds = ds.map(
-        #         lambda example: self._randaugment(example),
-        #         num_parallel_calls = tf.data.AUTOTUNE
-        #     )
+        if self.randaugment:
+            ds = ds.map(
+                lambda example: self._randaugment(example),
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
         
         ds = ds.map(
             lambda example: self._one_hot_encode_example(example),
