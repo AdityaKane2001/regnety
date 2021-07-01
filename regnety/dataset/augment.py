@@ -16,7 +16,7 @@ class WeakRandAugment:
     6: Sharpness: sharpness,
     7: ShearX : shear_x,
     8: ShearY : shear_y,
-    9: Solarize: 
+    9: Solarize: Invert pixels less than threshold
     10: TranslateX : translate_x,
     11: TranslateY : translate_y,
     
@@ -91,7 +91,7 @@ class WeakRandAugment:
         return aug_images
     
 
-    def color_degradation(self, images:tf.Tensor) -> tf.Tensor:
+    def color_degrade(self, images:tf.Tensor) -> tf.Tensor:
         """
         Converts RGB to grayscale and back.
 
@@ -173,7 +173,7 @@ class WeakRandAugment:
         Sharpens the images by a random factor
 
         Args:
-            images: batch of images to randomly rotate
+            images: batch of images to randomly sharpen
 
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)
@@ -215,6 +215,64 @@ class WeakRandAugment:
         return tfa.image.shear_y(images, level, replace)
 
 
+    def solarize(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Solarizes images and blends then randomly with original images
+        
+        Args:
+            images: batch of images to solarize
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        solarized = tf.where(images < 128., images, 255. - images)
+
+        factor = tf.constant([self.stength / 10.] * self.batch_size)
+        factor = tf.reshape(factor, (self.image_size, 1, 1, 1))
+
+        return self.blend(solarized, images, factor)
+
+
+    def translate_x(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Translates the image by randomly chosen amount
+
+        Args:
+            images: batch of images to randomly translate
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        translation = tf.random.uniform((self.batch_size,), minval = 0, maxval = 10)
+        translation = translation * self.strength
+        zeros = tf.zeros((self.batch_size,), dtype = tf.float32)
+        translation = tf.stack([translation, zeros])
+
+        return tfa.image.translate(images, translation, fill_value = 128.0)
+
+
+    def translate_y(self, images:tf.Tensor) -> tf.Tensor:
+        """
+        Translates the image by randomly chosen amount
+
+        Args:
+            images: batch of images to randomly translate
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+
+        translation = tf.random.uniform((self.batch_size,), minval = 0, maxval = 10)
+        translation = translation * self.strength
+        zeros = tf.zeros((self.batch_size,), dtype = tf.float32)
+        translation = tf.stack([zeros, translation])
+
+        return tfa.image.translate(images, translation, fill_value = 128.0)
+
+
+
     def _get_augs(self) -> tf.Tensor :
         """
         Randomly selects num_augs augmentations for the batch
@@ -230,6 +288,7 @@ class WeakRandAugment:
             minval = 0, maxval = 12, dtype = tf.int32)
         augs = tf.sort(augs)
         return augs
+
 
     def apply_augs(self, images: tf.Tensor) -> tf.Tensor:
         """
@@ -282,30 +341,5 @@ class WeakRandAugment:
                 aug_images = self.translate_y(aug_images)
             
         return tf.cast(aug_images, tf.uint8)
-
-
-    # def get_aug_from_index(self, aug_index:int) -> Callable:
-    #     """
-    #     Returns a callable given augment index. All augmentations are
-    #     randomized, thus `random_` is omitted from alll function names.
-
-    #     Args: 
-
-    #     """
-    #     augs = []
-    #     augs.append(self.color_degrade)  # augs[0] = self.color_degrade
-    #     augs.append(self.color_jitter)   # augs[1] = self.color_jitter
-    #     augs.append(self.cutout)         # augs[2] = self.cutout
-    #     augs.append(self.equalize)       # augs[3] = self.equalize
-    #     augs.append(self.invert)         # augs[4] = self.invert
-    #     augs.append(self.rotate)         # augs[5] = self.rotate
-    #     augs.append(self.sharpen)        # augs[6] = self.sharpen
-    #     augs.append(self.shear_x)        # augs[7] = self.shear_x
-    #     augs.append(self.shear_y)        # augs[8] = self.shear_y
-    #     augs.append(self.solarize)       # augs[9] = self.solarize
-    #     augs.append(self.translate_x)    # augs[10] = self.translate_x
-    #     augs.append(self.translate_y)    # augs[11] = self.translate_y
-
-    #     return augs
 
 
