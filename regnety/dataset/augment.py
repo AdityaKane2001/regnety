@@ -15,11 +15,8 @@ class WeakRandAugment:
     4: Invert: invert image randomly,
     5: Rotate: Rotate image randomly,
     6: Sharpness: sharpness,
-    7: ShearX : shear_x,
-    8: ShearY : shear_y,
     9: Solarize: Invert pixels less than threshold
-    10: TranslateX : translate_x,
-    11: TranslateY : translate_y,
+
     
 
     Args:
@@ -287,9 +284,9 @@ class WeakRandAugment:
             A list having num_augs entries having integers representing 
             augmentations to be applied.
         """
-        augs = np.random.randint(0, high = 8, size = (self.batch_size,))
-        augs = np.sort(augs)
-        return augs.tolist()
+        augs = tf.random.uniform((self.num_augs,), minval = 0, maxval = 4, dtype = tf.int32)
+        augs = tf.sort(augs)
+        return tf.data.Dataset.from_tensor_slices(augs)
 
 
     def apply_augs(self, images: tf.Tensor) -> tf.Tensor:
@@ -304,13 +301,21 @@ class WeakRandAugment:
         """
         
         aug_images = tf.cast(images, tf.float32)
-        aug_functions = self.get_aug_list()
-        tf.autograph.experimental.set_loop_options(
-        shape_invariants=[(aug_images, tf.TensorShape([128, 224, 224, 3]))])
+        aug_functions = self.get_aug_list(images)
+        
+
+        # aug_functions = self.augs.map(lambdaself.aug_mapper)
 
         for i in self.augs:
-            aug_images = tf.clip_by_value(
-                aug_functions[i](aug_images), clip_value_min=0, clip_value_max=255)
+            tf.autograph.experimental.set_loop_options(
+                shape_invariants=[(aug_images, tf.TensorShape([self.batch_size, 224, 224, 3]))])
+            # aug_images = tf.clip_by_value(
+            #     self.aug_mapper(i,aug_images), clip_value_min=0, clip_value_max=255)
+
+            aug_images = tf.switch_case(
+                i,
+                aug_functions
+            )
 
             # if i == tf.constant():
             #     aug_images = self.color_degrade(aug_images)
@@ -351,7 +356,7 @@ class WeakRandAugment:
         return tf.cast(aug_images, tf.uint8)
 
 
-    def get_aug_list(self) -> dict:
+    def get_aug_list(self, batch) -> dict:
         """
         Returns a callable given augment index. All augmentations are
         randomized, thus `random_` is omitted from alll function names.
@@ -360,14 +365,41 @@ class WeakRandAugment:
 
         """
         augs = dict()
-        augs[0] = self.color_degrade
-        augs[1] = self.color_jitter
-        augs[2] = self.cutout
-        augs[3] = self.equalize
-        augs[4] = self.invert
-        augs[5] = self.rotate
-        augs[6] = self.sharpen    
-        augs[7] = self.solarize
+
+        #augs[0] = lambda: self.color_degrade(batch)
+        augs[0] = lambda: self.color_jitter(batch)
+        augs[1] = lambda: self.cutout(batch)
+        #augs[9] = lambda: self.equalize(batch)
+        augs[2] = lambda: self.invert(batch)
+        augs[3] = lambda: self.rotate(batch)
+        #augs[] = lambda: self.sharpen(batch)
+        augs[4] = lambda: self.solarize(batch)
         
 
         return augs
+    
+    def aug_mapper(self, aug_index, images):
+       # if aug_index == 0:
+        #    return self.color_degrade(images)
+
+        if aug_index == 1:
+            return self.color_jitter(images)
+        
+        if aug_index == 2:
+            return self.cutout(images)
+        
+        if aug_index == 9:
+            return self.equalize(images)
+        
+        if aug_index == 3:
+            return self.invert(images)
+        
+        if aug_index == 4:
+            return self.rotate(images)
+        
+        if aug_index == 5:
+            return self.sharpen(images)
+        
+        if aug_index == 6:
+            return self.solarize(images)
+        
