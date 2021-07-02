@@ -18,7 +18,7 @@ tf.keras.backend.clear_session()
 imgnet = imagenet.ImageNet(
     tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
     randaugment = True,
-    batch_size = 1
+    batch_size = 128
 )
 
 ds = imgnet.make_dataset()

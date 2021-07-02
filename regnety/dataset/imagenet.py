@@ -54,6 +54,7 @@ class ImageNet:
         if self.randaugment:
             self._augmenter = WeakRandAugment(strength=5, num_augs=2, batch_size = batch_size)
 
+
     @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
@@ -78,6 +79,7 @@ class ImageNet:
             "synset": synset,
         }
 
+
     def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
         Returns:
@@ -87,7 +89,7 @@ class ImageNet:
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
 
 
-        #files = files.take(1)
+        files = files.take(1)
         options = tf.data.Options()
 
 
@@ -108,10 +110,11 @@ class ImageNet:
             num_parallel_calls = tf.data.AUTOTUNE 
         )
 
-        ds = ds.cache()
-        ds = ds.prefetch(tf.data.AUTOTUNE)
+        #ds = ds.cache()
+       
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)
+        ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
 
     # def _scale_and_center_crop(self, 

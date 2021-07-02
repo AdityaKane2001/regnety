@@ -8,12 +8,11 @@ from typing import Union, Callable, Tuple, List, Type
 class WeakRandAugment:
     """
     Implements a weaker version of RandAugment. Is vectorized. 
-    1: Color Jitter: Random brightness, hue, saturation and contrast
-    2: Cutout : cutout,
-   
-    4: Invert: invert image randomly,
-    5: Rotate: Rotate image randomly,
-    9: Solarize: Invert pixels less than threshold
+    0: Color Jitter: Random brightness, hue, saturation and contrast
+    1: Cutout : cutout,
+    2: Invert: invert image randomly,
+    3: Rotate: Rotate image randomly,
+    4: Solarize: Invert pixels less than threshold
 
     
 
@@ -130,9 +129,6 @@ class WeakRandAugment:
 
         solarized = tf.where(images < 128, images, 255 - images)
 
-        # factor = tf.constant([self.strength / 10.] * self.batch_size)
-        # factor = tf.reshape(factor, (self.image_size, 1, 1, 1))
-
         return solarized
 
 
@@ -167,13 +163,10 @@ class WeakRandAugment:
         aug_functions = self.get_aug_list(images)
         
 
-        # aug_functions = self.augs.map(lambdaself.aug_mapper)
-
         for i in self.augs:
             tf.autograph.experimental.set_loop_options(
-                shape_invariants=[(aug_images, tf.TensorShape([self.batch_size, 224, 224, 3]))])
-            # aug_images = tf.clip_by_value(
-            #     self.aug_mapper(i,aug_images), clip_value_min=0, clip_value_max=255)
+                shape_invariants=[(aug_images, 
+                    tf.TensorShape([self.batch_size, 224, 224, 3]))])
 
             aug_images = tf.switch_case(
                 i,
@@ -193,7 +186,6 @@ class WeakRandAugment:
 
         """
         augs = dict()
-
         
         augs[0] = lambda: self.color_jitter(batch)
         augs[1] = lambda: self.cutout(batch)
@@ -203,29 +195,4 @@ class WeakRandAugment:
         
 
         return augs
-    
-    def aug_mapper(self, aug_index, images):
-       # if aug_index == 0:
-        #    return self.color_degrade(images)
-
-        if aug_index == 1:
-            return self.color_jitter(images)
-        
-        if aug_index == 2:
-            return self.cutout(images)
-        
-        if aug_index == 9:
-            return self.equalize(images)
-        
-        if aug_index == 3:
-            return self.invert(images)
-        
-        if aug_index == 4:
-            return self.rotate(images)
-        
-        if aug_index == 5:
-            return self.sharpen(images)
-        
-        if aug_index == 6:
-            return self.solarize(images)
-        
+ 
