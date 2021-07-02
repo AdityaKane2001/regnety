@@ -10,7 +10,7 @@ class WeakRandAugment:
     Implements a weaker version of RandAugment. Is vectorized. 
     1: Color Jitter: Random brightness, hue, saturation and contrast
     2: Cutout : cutout,
-    3: Equalize: equalize image ,
+   
     4: Invert: invert image randomly,
     5: Rotate: Rotate image randomly,
     9: Solarize: Invert pixels less than threshold
@@ -35,31 +35,7 @@ class WeakRandAugment:
         self.augs =  self._get_augs()
 
 
-    def blend(self, image1:tf.Tensor, image2:tf.Tensor, factor:tf.Tensor) -> tf.Tensor:
-        """
-        Blends two batches of images by a factor. Factor must be a
-        Tensor of shape (batch_size,1,1,1)
-
-        Args:
-            image1: One of the images to be mixed
-            image2: One of the images to be mixed
-            factor: This amount of image1 will be taken in the mix. 1-factor
-                will be amount image2 will be taken in the mix.
-        
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-        try:
-            aug_image = image1 * factor + image2 * (1. - factor)
-
-        except:
-            raise ValueError(
-                "Factor must have the shape (batch_size, 1, 1, 1). Got shape", tf.shape(factor))
-        
-
-        return aug_image
-
-
+   
     def color_jitter(self, images: tf.Tensor) -> tf.Tensor:
         """
         Performs color jitter on the batch. Random brightness, hue, saturation, 
@@ -85,25 +61,9 @@ class WeakRandAugment:
         aug_images = tf.image.random_hue(aug_images, hue_delta)
         aug_images = tf.image.random_saturation(aug_images, saturation_lower, 
             saturation_upper)
-
+        
         return aug_images
     
-
-    def color_degrade(self, images:tf.Tensor) -> tf.Tensor:
-        """
-        Converts RGB to grayscale and back.
-
-        Args:
-            images: Batch of images
-
-        Returns:
-           Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-
-        factor = tf.random.uniform((self.batch_size,1,1,1))
-        degenerate = tf.image.grayscale_to_rgb(tf.image.rgb_to_grayscale(images))
-        return self.blend(degenerate, images, factor)
-
 
     def cutout(self, images: tf.Tensor) -> tf.Tensor:
         """
@@ -115,7 +75,7 @@ class WeakRandAugment:
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)        
         """
-        mask_size = (224 * self.strength) / 100.
+        mask_size = (224 * self.strength) / 10.
         mask_size = tf.cast(tf.math.ceil(mask_size), tf.int32)
         
         mask_size = tf.cond(mask_size % 2 == 0,lambda: mask_size,lambda:mask_size + 1)
@@ -124,18 +84,6 @@ class WeakRandAugment:
         return aug_images
     
 
-    def equalize(self, images:tf.Tensor) -> tf.Tensor:
-        """
-        Applies equalize augmentation to images
-
-        Args:
-            images: batch of images to apply equalize to
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-        
-        return tfa.image.equalize(images, bins = 256)
 
 
     def invert(self, images:tf.Tensor) -> tf.Tensor:
@@ -148,7 +96,8 @@ class WeakRandAugment:
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
-        return tf.cast(255. - images, tf.uint8)
+        
+        return tf.cast(255 - images, tf.uint8)
 
     def rotate(self, images: tf.Tensor) -> tf.Tensor:
         """
@@ -162,57 +111,12 @@ class WeakRandAugment:
         """
         
         PI = tf.constant(3.141592653589793)
-        angles = tf.random.uniform(()) * PI/2
+        angles = tf.random.uniform(()) * PI
         return tfa.image.rotate(images, angles, fill_value = 128.)
 
 
-    def sharpen(self, images:tf.Tensor) -> tf.Tensor:
-        """
-        Sharpens the images by a random factor
 
-        Args:
-            images: batch of images to randomly sharpen
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-
-        factor = tf.random.uniform((),minval = 0.01, maxval = 1) * self.strength
-        return tfa.image.sharpness(images, factor)
     
-
-    def shear_x(self, images: tf.Tensor) -> tf.Tensor:
-        """
-        Randomly shears the images in X direction
-
-        Args:
-            images: batch of images to randomly shear in X direction
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        
-        """
-        level = self.strength / 10.
-        replace = tf.constant([128.])
-        return tfa.image.shear_x(images, level, replace)
-    
-
-    def shear_y(self, images: tf.Tensor) -> tf.Tensor:
-        """
-        Randomly shears the images in Y direction
-
-        Args:
-            images: batch of images to randomly shear in Y direction
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        
-        """
-        level = self.strength / 10.
-        replace = tf.constant([128.,])
-        return tfa.image.shear_y(images, level, replace)
-
-
     def solarize(self, images: tf.Tensor) -> tf.Tensor:
         """
         Solarizes images and blends then randomly with original images
@@ -224,51 +128,12 @@ class WeakRandAugment:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
 
-        solarized = tf.where(images < 128., images, 255. - images)
+        solarized = tf.where(images < 128, images, 255 - images)
 
         # factor = tf.constant([self.strength / 10.] * self.batch_size)
         # factor = tf.reshape(factor, (self.image_size, 1, 1, 1))
 
         return solarized
-
-
-    def translate_x(self, images:tf.Tensor) -> tf.Tensor:
-        """
-        Translates the image by randomly chosen amount
-
-        Args:
-            images: batch of images to randomly translate
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-
-        translation = tf.random.uniform((self.batch_size,), minval = 0, maxval = 10)
-        translation = translation * self.strength
-        zeros = tf.zeros((self.batch_size,), dtype = tf.float32)
-        translation = tf.stack([translation, zeros])
-
-        return tfa.image.translate(images, translation, fill_value = 128.0)
-
-
-    def translate_y(self, images:tf.Tensor) -> tf.Tensor:
-        """
-        Translates the image by randomly chosen amount
-
-        Args:
-            images: batch of images to randomly translate
-
-        Returns:
-            Tensor of shape (batch_size, image_size, image_size, channels)
-        """
-
-        translation = tf.random.uniform((self.batch_size,), minval = 0, maxval = 10)
-        translation = translation * self.strength
-        zeros = tf.zeros((self.batch_size,), dtype = tf.float32)
-        translation = tf.stack([zeros, translation])
-
-        return tfa.image.translate(images, translation, fill_value = 128.0)
-
 
 
     def _get_augs(self) -> tf.Tensor :

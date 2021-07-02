@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import time
 from PIL import Image
+#%matplotlib inline
+import matplotlib.pyplot as plt
 
 
 from dataset import imagenet
@@ -13,15 +15,22 @@ from dataset import imagenet
 
 tf.keras.backend.clear_session()
 
-
 imgnet = imagenet.ImageNet(
     tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
     randaugment = True,
-    batch_size = 128
+    batch_size = 1
 )
 
 ds = imgnet.make_dataset()
-ds = ds.prefetch(tf.data.AUTOTUNE)
+# k=0
+# for i in ds:
+#     im = i[0][0].numpy() / 255.
+#     k+=1
+#     img = plt.imshow(im)
+#     img.set_cmap('hot')
+#     plt.axis('off')
+#     plt.savefig(os.path.join('/content','augmented_'+str(k)+'.jpeg'), bbox_inches='tight')
+#     break
 
     
 
@@ -40,7 +49,7 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(0.001),
     metrics=['accuracy']
 )
-logs = "logs/" + '128_no_cache2'
+logs = "logs/" + '128_no_cache'
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  histogram_freq = 1,

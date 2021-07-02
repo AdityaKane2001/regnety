@@ -52,7 +52,7 @@ class ImageNet:
         self.num_classes = num_classes
         self.randaugment = randaugment
         if self.randaugment:
-            self._augmenter = WeakRandAugment(strength=5, num_augs=2)
+            self._augmenter = WeakRandAugment(strength=5, num_augs=2, batch_size = batch_size)
 
     @tf.function
     def decode_example(self, example: tf.Tensor) -> dict:
@@ -90,7 +90,7 @@ class ImageNet:
         #files = files.take(1)
         options = tf.data.Options()
 
-        #General Options
+
         options.experimental_deterministic = False
 
         files = files.with_options(options)
@@ -98,10 +98,7 @@ class ImageNet:
         ds = files.interleave(tf.data.TFRecordDataset, 
           num_parallel_calls = tf.data.AUTOTUNE,
           deterministic=False)
-        # options.experimental_threading.max_intra_op_parallelism = 4
 
-        
-        #ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
         ds = ds.map(
             lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
             num_parallel_calls = tf.data.AUTOTUNE
@@ -212,7 +209,7 @@ class ImageNet:
     #         "synset": example["synset"],
     #     }
 
-    @tf.function
+    
     def _one_hot_encode_example(self, example: dict) -> dict:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
@@ -223,7 +220,7 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    @tf.function
+    
     def _randaugment(self, example: dict) -> dict:
         """Wrapper for tf vision's RandAugment.distort function which
         accepts examples as input instead of images. Uses magnitude = 5
@@ -234,6 +231,7 @@ class ImageNet:
             example in which RandAugment has been applied to the image
         """
         image = example['image']
+
         image = self._augmenter.apply_augs(image)
         return {
             "image": image,
