@@ -17,14 +17,12 @@ tf.keras.backend.clear_session()
 imgnet = imagenet.ImageNet(
     tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
     randaugment = True,
-    batch_size = 1
+    batch_size = 128
 )
 
 ds = imgnet.make_dataset()
-# ds = ds.prefetch(tf.data.AUTOTUNE)
-for i in ds.take(1):
-    im = Image.fromarray(i[0][0].numpy())
-    im.save("your_file.jpeg")   
+ds = ds.prefetch(tf.data.AUTOTUNE)
+
     
 
 
@@ -42,14 +40,14 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(0.001),
     metrics=['accuracy']
 )
-logs = "logs/" + str(time.time())
+logs = "logs/" + '128_no_cache2'
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  histogram_freq = 1,
-                                                 profile_batch = '2,18')
+                                                 profile_batch = '2,45')
 
 model.fit(ds,
-          epochs=2,
-          steps_per_epoch = 20,
+          epochs=5,
+          steps_per_epoch = 10,
           #validation_data=ds_test,
           callbacks = [tboard_callback])

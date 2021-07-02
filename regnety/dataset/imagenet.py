@@ -86,6 +86,8 @@ class ImageNet:
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
 
+
+        #files = files.take(1)
         options = tf.data.Options()
 
         #General Options
@@ -110,6 +112,8 @@ class ImageNet:
         )
 
         ds = ds.cache()
+        ds = ds.prefetch(tf.data.AUTOTUNE)
+        ds = ds.repeat()
         ds = ds.batch(self.batch_size)
         return ds
 
@@ -172,7 +176,7 @@ class ImageNet:
     @tf.function
     def random_sized_crop(self, 
         example: dict,
-        min_area: float = 0.08) -> dict:
+        min_area: float = 0.25) -> dict:
         """
         Takes a random crop of image having a random aspect ratio. Resizes it 
         to self.image_size. Aspect ratio is NOT maintained. 
@@ -200,7 +204,7 @@ class ImageNet:
         )
 
         return {
-            "image": image,
+            "image": tf.cast(image,tf.uint8),
             "height": self.image_size,
             "width": self.image_size,
             "filename": example["filename"],
@@ -257,10 +261,7 @@ class ImageNet:
         #batch shape: (128, 512, 512, 3)
 
         if self.augment_fn == "default":
-            ds = ds.map(
-                lambda example: self.random_sized_crop(example),
-                num_parallel_calls = tf.data.AUTOTUNE
-            )
+            pass
 
         else:
             ds = ds.map(
@@ -279,7 +280,6 @@ class ImageNet:
             num_parallel_calls = tf.data.AUTOTUNE
         )
 
-        
 
         ds = ds.prefetch(tf.data.AUTOTUNE)
 
