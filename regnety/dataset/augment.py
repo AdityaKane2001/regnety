@@ -8,13 +8,11 @@ from typing import Union, Callable, Tuple, List, Type
 class WeakRandAugment:
     """
     Implements a weaker version of RandAugment. Is vectorized. 
-    0: Color Degradation: Degrades image
     1: Color Jitter: Random brightness, hue, saturation and contrast
     2: Cutout : cutout,
     3: Equalize: equalize image ,
     4: Invert: invert image randomly,
     5: Rotate: Rotate image randomly,
-    6: Sharpness: sharpness,
     9: Solarize: Invert pixels less than threshold
 
     
@@ -317,41 +315,6 @@ class WeakRandAugment:
                 aug_functions
             )
 
-            # if i == tf.constant():
-            #     aug_images = self.color_degrade(aug_images)
-            
-            # if i == tf.constant(1):
-            #     aug_images = self.color_jitter(aug_images)
-            
-            # if i == tf.constant(2):
-            #     aug_images = self.cutout(aug_images)
-            
-            # if i == tf.constant(3):
-            #     aug_images = self.equalize(aug_images)
-            
-            # if i == tf.constant(4):
-            #     aug_images = self.invert(aug_images)
-            
-            # if i == tf.constant(5):
-            #     aug_images = self.rotate(aug_images)
-            
-            # if i == tf.constant(6):
-            #     aug_images = self.sharpen(aug_images)
-            
-            # if i == tf.constant(7):
-            #     aug_images = self.shear_x(aug_images)
-            
-            # if i == tf.constant(8):
-            #     aug_images = self.shear_y(aug_images)
-            
-            # if i == tf.constant(9):
-            #     aug_images = self.solarize(aug_images)
-            
-            # if i == tf.constant(10):
-            #     aug_images = self.translate_x(aug_images)
-            
-            # if i == tf.constant(11):
-            #     aug_images = self.translate_y(aug_images)
             
         return tf.cast(aug_images, tf.uint8)
 
@@ -366,13 +329,11 @@ class WeakRandAugment:
         """
         augs = dict()
 
-        #augs[0] = lambda: self.color_degrade(batch)
+        
         augs[0] = lambda: self.color_jitter(batch)
         augs[1] = lambda: self.cutout(batch)
-        #augs[9] = lambda: self.equalize(batch)
         augs[2] = lambda: self.invert(batch)
         augs[3] = lambda: self.rotate(batch)
-        #augs[] = lambda: self.sharpen(batch)
         augs[4] = lambda: self.solarize(batch)
         
 

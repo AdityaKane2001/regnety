@@ -117,100 +117,100 @@ class ImageNet:
         ds = ds.batch(self.batch_size)
         return ds
 
-    def _scale_and_center_crop(self, 
-        image: tf.Tensor,
-        scale_size: tf.Tensor, 
-        final_size: tf.Tensor) -> tf.Tensor:
-        """Resizes image to given scale size and returns a center crop. Aspect
-        ratio is maintained. Note that final_size must be less than or equal to
-        scale_size.
-        Args:
-            image: tensor of the image
-            scale_size: Size of image to scale to
-            final_size: Size of final image
-        Returns:
-            Tensor of shape (final_size, final_size, 3)
-        """
-        if final_size < scale_size:
-            raise ValueError('final_size must be lesser than scale_size, recieved %d and %d respectively' % (final_size, scale_size))
+    # def _scale_and_center_crop(self, 
+    #     image: tf.Tensor,
+    #     scale_size: tf.Tensor, 
+    #     final_size: tf.Tensor) -> tf.Tensor:
+    #     """Resizes image to given scale size and returns a center crop. Aspect
+    #     ratio is maintained. Note that final_size must be less than or equal to
+    #     scale_size.
+    #     Args:
+    #         image: tensor of the image
+    #         scale_size: Size of image to scale to
+    #         final_size: Size of final image
+    #     Returns:
+    #         Tensor of shape (final_size, final_size, 3)
+    #     """
+    #     if final_size < scale_size:
+    #         raise ValueError('final_size must be lesser than scale_size, recieved %d and %d respectively' % (final_size, scale_size))
 
-        square_scaled_image = tf.image.resize_with_pad(image, 
-            scale_size, scale_size) 
-        return tf.image.central_crop(square_scaled_image, 
-            final_size / scale_size)
+    #     square_scaled_image = tf.image.resize_with_pad(image, 
+    #         scale_size, scale_size) 
+    #     return tf.image.central_crop(square_scaled_image, 
+    #         final_size / scale_size)
     
-    def _get_boxes(self, aspect_ratio, area):
-        """
-        Returns crop boxes to be used in crop_and_resize
-        """
-        heights = tf.random.uniform((self.batch_size,), 
-            maxval = tf.math.sqrt(area) * aspect_ratio )
-        widths = heights / tf.math.square(aspect_ratio)
+    # def _get_boxes(self, aspect_ratio, area):
+    #     """
+    #     Returns crop boxes to be used in crop_and_resize
+    #     """
+    #     heights = tf.random.uniform((self.batch_size,), 
+    #         maxval = tf.math.sqrt(area) * aspect_ratio )
+    #     widths = heights / tf.math.square(aspect_ratio)
 
-        if tf.random.uniform(()) < 0.5 :
-            temp = heights
-            heights = widths
-            widths = temp
+    #     if tf.random.uniform(()) < 0.5 :
+    #         temp = heights
+    #         heights = widths
+    #         widths = temp
         
-        else:
-            temp = heights #for AutoGraph
+    #     else:
+    #         temp = heights #for AutoGraph
         
-        max_width = tf.math.reduce_max(widths)
-        max_height = tf.math.reduce_max(heights)
+    #     max_width = tf.math.reduce_max(widths)
+    #     max_height = tf.math.reduce_max(heights)
 
-        x1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_width/2 - 0.00001)
-        y1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_height/2 - 0.00001)
+    #     x1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_width/2 - 0.00001)
+    #     y1s = tf.random.uniform((self.batch_size,), minval = 0, maxval = max_height/2 - 0.00001)
 
-        x2s = widths + x1s
-        y2s = heights + y1s
+    #     x2s = widths + x1s
+    #     y2s = heights + y1s
 
-        x2s = tf.clip_by_value(x2s, clip_value_min=0, clip_value_max=1.0)
-        y2s = tf.clip_by_value(y2s, clip_value_min=0, clip_value_max=1.0)
+    #     x2s = tf.clip_by_value(x2s, clip_value_min=0, clip_value_max=1.0)
+    #     y2s = tf.clip_by_value(y2s, clip_value_min=0, clip_value_max=1.0)
 
-        boxes = tf.stack([y1s, x1s, y2s, x2s])
+    #     boxes = tf.stack([y1s, x1s, y2s, x2s])
 
-        boxes = tf.transpose(boxes)
+    #     boxes = tf.transpose(boxes)
 
-        return boxes
+    #     return boxes
 
-    @tf.function
-    def random_sized_crop(self, 
-        example: dict,
-        min_area: float = 0.25) -> dict:
-        """
-        Takes a random crop of image having a random aspect ratio. Resizes it 
-        to self.image_size. Aspect ratio is NOT maintained. 
-        Args:
-            example: A dataset example dict.
-            min_area: Minimum area of image to be used
-        Returns:
-            Example of same format as _TFRECS_FORMAT
-        """
+    # @tf.function
+    # def random_sized_crop(self, 
+    #     example: dict,
+    #     min_area: float = 0.25) -> dict:
+    #     """
+    #     Takes a random crop of image having a random aspect ratio. Resizes it 
+    #     to self.image_size. Aspect ratio is NOT maintained. 
+    #     Args:
+    #         example: A dataset example dict.
+    #         min_area: Minimum area of image to be used
+    #     Returns:
+    #         Example of same format as _TFRECS_FORMAT
+    #     """
 
-        image = example['image']
-        h = example['height']
-        w = example['width']
+    #     image = example['image']
+    #     h = example['height']
+    #     w = example['width']
 
-        aspect_ratio = tf.random.uniform((), minval = 3./4., maxval = 4./3.)
-        area = tf.random.uniform((), minval = min_area, maxval = 1)
+    #     aspect_ratio = tf.random.uniform((), minval = 3./4., maxval = 4./3.)
+    #     area = tf.random.uniform((), minval = min_area, maxval = 1)
 
-        boxes = self._get_boxes(aspect_ratio, area)
+    #     boxes = self._get_boxes(aspect_ratio, area)
 
-        image = tf.image.crop_and_resize(
-            image,
-            boxes,
-            tf.range(self.batch_size),
-            (self.image_size[0], self.image_size[0]),
-        )
+    #     image = tf.image.crop_and_resize(
+    #         image,
+    #         boxes,
+    #         tf.range(self.batch_size),
+    #         (self.image_size[0], self.image_size[0]),
+    #     )
 
-        return {
-            "image": tf.cast(image,tf.uint8),
-            "height": self.image_size,
-            "width": self.image_size,
-            "filename": example["filename"],
-            "label": example["label"],
-            "synset": example["synset"],
-        }
+    #     return {
+    #         "image": tf.cast(image,tf.uint8),
+    #         "height": self.image_size,
+    #         "width": self.image_size,
+    #         "filename": example["filename"],
+    #         "label": example["label"],
+    #         "synset": example["synset"],
+    #     }
 
     @tf.function
     def _one_hot_encode_example(self, example: dict) -> dict:
@@ -252,7 +252,7 @@ class ImageNet:
         Returns:
             Dataset having the final format as follows:
             {
-                'image' : (self.image_size, self.image_size, 3)
+                'image' : (batch_size, self.image_size, self.image_size, 3)
                 'target' : (num_classes,)
             }
         """
@@ -260,14 +260,14 @@ class ImageNet:
 
         #batch shape: (128, 512, 512, 3)
 
-        if self.augment_fn == "default":
-            pass
+        # if self.augment_fn == "default":
+        #     pass
 
-        else:
-            ds = ds.map(
-                lambda example: self.augment_fn(example),
-                num_parallel_calls = tf.data.AUTOTUNE
-            )
+        # else:
+        #     ds = ds.map(
+        #         lambda example: self.augment_fn(example),
+        #         num_parallel_calls = tf.data.AUTOTUNE
+        #     )
 
         if self.randaugment:
             ds = ds.map(
