@@ -148,7 +148,7 @@ class WeakRandAugment:
         Returns:
             Tensor of shape (batch_size, image_size, image_size, channels)
         """
-        return 255. - images
+        return tf.cast(255. - images, tf.uint8)
 
     def rotate(self, images: tf.Tensor) -> tf.Tensor:
         """
@@ -298,7 +298,7 @@ class WeakRandAugment:
             Augmented batch of images of size (None, 224, 224, 3)
         """
         
-        aug_images = tf.cast(images, tf.float32)
+        aug_images = tf.cast(images, tf.uint8)
         aug_functions = self.get_aug_list(images)
         
 
