@@ -165,7 +165,7 @@ class WeakRandAugment:
             A list having num_augs entries having integers representing 
             augmentations to be applied.
         """
-        augs = tf.random.uniform((self.num_augs,), minval = 0, maxval = 4, dtype = tf.int32)
+        augs = tf.random.uniform((self.num_augs,), minval = 0, maxval = 5, dtype = tf.int32)
         augs = tf.sort(augs)
         return tf.data.Dataset.from_tensor_slices(augs)
 
@@ -211,11 +211,11 @@ class WeakRandAugment:
         
         augs[0] = lambda: self.color_jitter(batch)
         augs[1] = lambda: self.cutout(batch)
-        augs[2] = lambda: self.equalize(batch)
-        augs[3] = lambda: self.invert(batch)
-        augs[4] = lambda: self.rotate(batch)
-        augs[5] = lambda: self.sharpen(batch)
-        augs[6] = lambda: self.solarize(batch)
+        #augs[2] = lambda: self.equalize(batch)
+        augs[2] = lambda: self.invert(batch)
+        augs[3] = lambda: self.rotate(batch)
+        augs[4] = lambda: self.sharpen(batch)
+        augs[5] = lambda: self.solarize(batch)
         
 
         return augs

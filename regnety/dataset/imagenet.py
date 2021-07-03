@@ -89,7 +89,7 @@ class ImageNet:
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
 
 
-        files = files.take(1)
+        #files = files.take(1)
         options = tf.data.Options()
 
 
