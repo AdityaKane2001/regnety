@@ -83,6 +83,17 @@ class WeakRandAugment:
         return aug_images
     
 
+    def equalize(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Equalizes given batch of images
+        
+        Args:
+            images: batch of images to equalize
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+        return tfa.image.equalize(images)
 
 
     def invert(self, images:tf.Tensor) -> tf.Tensor:
@@ -114,6 +125,17 @@ class WeakRandAugment:
         return tfa.image.rotate(images, angles, fill_value = 128.)
 
 
+    def sharpen(self, images: tf.Tensor) -> tf.Tensor:
+        """
+        Sharpens the image based on given strength
+        Args:
+            images: batch of images to sharpen
+
+        Returns:
+            Tensor of shape (batch_size, image_size, image_size, channels)
+        """
+        factor = self.strength 
+        return tfa.image.sharpness(images, factor)  
 
     
     def solarize(self, images: tf.Tensor) -> tf.Tensor:
@@ -166,7 +188,7 @@ class WeakRandAugment:
         for i in self.augs:
             tf.autograph.experimental.set_loop_options(
                 shape_invariants=[(aug_images, 
-                    tf.TensorShape([self.batch_size, 224, 224, 3]))])
+                    tf.TensorShape([self.batch_size, 512, 512, 3]))])
 
             aug_images = tf.switch_case(
                 i,
@@ -189,9 +211,11 @@ class WeakRandAugment:
         
         augs[0] = lambda: self.color_jitter(batch)
         augs[1] = lambda: self.cutout(batch)
-        augs[2] = lambda: self.invert(batch)
-        augs[3] = lambda: self.rotate(batch)
-        augs[4] = lambda: self.solarize(batch)
+        augs[2] = lambda: self.equalize(batch)
+        augs[3] = lambda: self.invert(batch)
+        augs[4] = lambda: self.rotate(batch)
+        augs[5] = lambda: self.sharpen(batch)
+        augs[6] = lambda: self.solarize(batch)
         
 
         return augs
