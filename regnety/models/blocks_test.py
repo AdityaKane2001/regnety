@@ -1,5 +1,6 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import tensorflow as tf
 import unittest
 from regnety.regnety.models.blocks import SE, YBlock
@@ -27,7 +28,7 @@ class blocks_test(unittest.TestCase):
 
     def test_YBlock_stride1(self):
         if len(self.devices) > 1:
-            #Grouped convs are available only on GPU
+            # Grouped convs are available only on GPU
             yblock = YBlock(4, 4, 8, stride = 1)
             model = tf.keras.Sequential([
                 yblock,
@@ -42,7 +43,7 @@ class blocks_test(unittest.TestCase):
 
     def test_YBlock_stride2(self):
         if len(self.devices) > 1:
-            #Grouped convs are available only on GPU
+            # Grouped convs are available only on GPU
             yblock = YBlock(4, 4, 8, stride = 2)
             model = tf.keras.Sequential([
                 yblock,

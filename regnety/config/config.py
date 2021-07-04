@@ -38,8 +38,13 @@ class RegNetYConfig:
 def get_model_config(flops: str):
     """
     Getter function for configuration for a specific RegNetY model instance.
-    User must provide flops in string format. Example "200MF", "800MF" 
+    User must provide flops in string format. Example "200MF", "800MF".
     
+    Link to the paper: https://arxiv.org/pdf/2003.13678.pdf
+
+    The widths and depths are deduced from a quantized linear function. For 
+    more information, please refer to the original paper. 
+
     Args: 
         flops: String denoting flops of model (as per the paper)
 

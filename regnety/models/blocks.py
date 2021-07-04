@@ -1,20 +1,20 @@
-"""Has building blocks of RegNetY models"""
+"""Contains the building blocks of RegNetY models."""
 
 import tensorflow as tf
 
 
-# TODO:
+# Contains:
 # 1. Stem
 # 2. Body
 #     2.1 Block
 #         2.1.1 SE
 # 3. Head
 # 4. RegNetY
-# Reference: https://tinyurl.com/dcc5c5p8
+# Reference: https://arxiv.org/pdf/2003.13678.pdf
 
 class Stem(tf.keras.layers.Layer):
-    """Class to initiate stem architecture from the paper: 
-    `stride-two 3×3 conv with w0 = 32 output filters`
+    """Class to initiate stem architecture from the paper (see `Reference` 
+    above): `stride-two 3×3 conv with w0 = 32 output filters`.
     
     Args:
         None, stem is common to all models
@@ -57,11 +57,11 @@ class SE(tf.keras.layers.Layer):
         
     def call(self, inputs):
         # input shape: (h,w,out_filters)
-        x = self.ga_pool(inputs) #x: (out_filters)
-        x = self.squeeze_dense(x) #x: (se_filters)
-        x = self.excite_dense(x) #x: (out_filters)
+        x = self.ga_pool(inputs) # x: (out_filters)
+        x = self.squeeze_dense(x) # x: (se_filters)
+        x = self.excite_dense(x) # x: (out_filters)
         x = tf.reshape(x, [-1,1,1,self.out_filters])
-        x = tf.math.multiply(x, inputs) #x: (h,w,out_filters)
+        x = tf.math.multiply(x, inputs) # x: (h,w,out_filters)
         return x
         
 
@@ -160,7 +160,10 @@ class YBlock(tf.keras.layers.Layer):
 
 class Stage(tf.keras.layers.Layer):
     """
-    Class for RegNetY stage. 
+    Class for RegNetY stage. A single stage consists of `depth` number of 
+    YBlocks. Such four stages are connected sequantially to create `body` 
+    of the model. For more information, refer to the paper (see `Reference` at 
+    the top of this module).
 
     Args:
         depth: Depth of stage, number of blocks to use
