@@ -1,7 +1,7 @@
 """Contains the building blocks of RegNetY models."""
 
 import tensorflow as tf
-
+from tensorflow.keras import layers
 
 # Contains:
 # 1. Stem
@@ -12,7 +12,7 @@ import tensorflow as tf
 # 4. RegNetY
 # Reference: https://arxiv.org/pdf/2003.13678.pdf
 
-class Stem(tf.keras.layers.Layer):
+class Stem(layers.Layer):
     """Class to initiate stem architecture from the paper (see `Reference` 
     above): `stride-two 3×3 conv with w0 = 32 output filters`.
     
@@ -22,11 +22,11 @@ class Stem(tf.keras.layers.Layer):
 
     def __init__(self):
         super(Stem, self).__init__()
-        self.conv3x3 =  tf.keras.layers.Conv2D(32, (3,3), strides = 2)
-        self.bn = tf.keras.layers.BatchNormalization(
+        self.conv3x3 =  layers.Conv2D(32, (3,3), strides = 2)
+        self.bn = layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001
         )
-        self.act = tf.keras.layers.ReLU()
+        self.act = layers.ReLU()
 
     def call(self, inputs):
         x = self.conv3x3(inputs)
@@ -34,7 +34,7 @@ class Stem(tf.keras.layers.Layer):
         x = self.act(x)
         return x
 
-class SE(tf.keras.layers.Layer):
+class SE(layers.Layer):
     """
     Squeeze and Excite block. Takes se_ratio and in_filters as arguments. 
 
@@ -51,9 +51,9 @@ class SE(tf.keras.layers.Layer):
         
         self.se_filters = int(in_filters * se_ratio)
         self.out_filters = in_filters
-        self.ga_pool = tf.keras.layers.GlobalAveragePooling2D()
-        self.squeeze_dense = tf.keras.layers.Dense(self.se_filters, activation = 'relu')
-        self.excite_dense = tf.keras.layers.Dense(self.out_filters,  activation = 'sigmoid')
+        self.ga_pool = layers.GlobalAveragePooling2D()
+        self.squeeze_dense = layers.Dense(self.se_filters, activation = 'relu')
+        self.excite_dense = layers.Dense(self.out_filters,  activation = 'sigmoid')
         
     def call(self, inputs):
         # input shape: (h,w,out_filters)
@@ -65,7 +65,7 @@ class SE(tf.keras.layers.Layer):
         return x
         
 
-class YBlock(tf.keras.layers.Layer):
+class YBlock(layers.Layer):
     """
     Y Block in RegNetY structure. 
     IMPORTANT: Grouped convolutions are only supported by keras on GPU. 
@@ -93,20 +93,20 @@ class YBlock(tf.keras.layers.Layer):
 
         self.groups = self.out_filters // self.group_width
 
-        self.conv1x1_1 = tf.keras.layers.Conv2D(out_filters, (1,1))
+        self.conv1x1_1 = layers.Conv2D(out_filters, (1,1))
         self.se = SE(out_filters)
-        self.conv1x1_2 = tf.keras.layers.Conv2D(out_filters, (1,1))
+        self.conv1x1_2 = layers.Conv2D(out_filters, (1,1))
 
-        self.bn1x1_1 = tf.keras.layers.BatchNormalization(
+        self.bn1x1_1 = layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001)
-        self.bn3x3 = tf.keras.layers.BatchNormalization(
+        self.bn3x3 = layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001)
-        self.bn1x1_2 = tf.keras.layers.BatchNormalization(
+        self.bn1x1_2 = layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001)
 
-        self.relu1x1_1 = tf.keras.layers.ReLU()
-        self.relu3x3 = tf.keras.layers.ReLU()
-        self.relu1x1_2 = tf.keras.layers.ReLU()
+        self.relu1x1_1 = layers.ReLU()
+        self.relu3x3 = layers.ReLU()
+        self.relu1x1_2 = layers.ReLU()
 
         self.skip_conv = None
         self.conv3x3 = None
@@ -114,17 +114,17 @@ class YBlock(tf.keras.layers.Layer):
         self.relu_skip = None
 
         if (in_filters != out_filters) or (stride != 1):
-            self.skip_conv = tf.keras.layers.Conv2D(
+            self.skip_conv = layers.Conv2D(
                 out_filters, (1, 1), strides=2)
-            self.bn_skip = tf.keras.layers.BatchNormalization()
-            self.relu_skip = tf.keras.layers.ReLU()    
+            self.bn_skip = layers.BatchNormalization()
+            self.relu_skip = layers.ReLU()    
  
-            self.conv3x3 = tf.keras.layers.Conv2D(
+            self.conv3x3 = layers.Conv2D(
                 out_filters, (3, 3), strides = 2, groups = self.groups, 
                 padding = 'same')
  
         else:
-            self.conv3x3 = tf.keras.layers.Conv2D(
+            self.conv3x3 = layers.Conv2D(
                 out_filters, (3, 3), strides = 1, groups = self.groups, 
                 padding = 'same')
         
@@ -158,7 +158,7 @@ class YBlock(tf.keras.layers.Layer):
     
 
 
-class Stage(tf.keras.layers.Layer):
+class Stage(layers.Layer):
     """
     Class for RegNetY stage. A single stage consists of `depth` number of 
     YBlocks. Such four stages are connected sequantially to create `body` 
@@ -200,7 +200,7 @@ class Stage(tf.keras.layers.Layer):
         return x
 
 
-class Head(tf.keras.layers.Layer):
+class Head(layers.Layer):
     """
     Head for all RegNetY models.
 
@@ -210,8 +210,8 @@ class Head(tf.keras.layers.Layer):
     def __init__(self, num_classes):
         super(Head, self).__init__()
 
-        self.gap = tf.keras.layers.GlobalAveragePooling2D()
-        self.fc = tf.keras.layers.Dense(num_classes, activation = 'sigmoid')
+        self.gap = layers.GlobalAveragePooling2D()
+        self.fc = layers.Dense(num_classes)
     
     def call(self, inputs):
         x = self.gap(inputs)

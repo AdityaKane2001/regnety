@@ -17,45 +17,36 @@ class blocks_test(unittest.TestCase):
         self.y = tf.constant([targets]*10)
 
     def test_SE(self):
-        model = tf.keras.Sequential([
-            SE(4),
-            tf.keras.layers.GlobalAveragePooling2D(),
-            tf.keras.layers.Dense(10, activation= 'sigmoid')
-            ])
-        model.compile(optimizer = 'adam',
-            metrics=['accuracy'], loss = 'categorical_crossentropy')
-        model.fit(self.image,self.y,verbose=0)
+        block = SE(4)
+        output = block(self.image)
+        assert output.shape == (10,20,20,4)
 
     def test_YBlock_stride1(self):
         if len(self.devices) > 1:
             # Grouped convs are available only on GPU
-            yblock = YBlock(4, 4, 8, stride = 1)
-            model = tf.keras.Sequential([
-                yblock,
-                tf.keras.layers.GlobalAveragePooling2D(),
-                tf.keras.layers.Dense(10, activation= 'sigmoid')
-            ])
-            model.compile(optimizer = 'adam',
-                metrics=['accuracy'], loss = 'categorical_crossentropy')
-            model.fit(self.image,self.y,verbose=0)
+            block = YBlock(4, 4, 4, stride = 1)
+            output = block(self.image)
+            assert output.shape == (10,20,20,4)
         else:
             raise unittest.case.SkipTest("GPU not available on this machine, skipping.")
 
-    def test_YBlock_stride2(self):
+    def test_YBlock_stride2_case1(self):
         if len(self.devices) > 1:
             # Grouped convs are available only on GPU
-            yblock = YBlock(4, 4, 8, stride = 2)
-            model = tf.keras.Sequential([
-                yblock,
-                tf.keras.layers.GlobalAveragePooling2D(),
-                tf.keras.layers.Dense(10, activation= 'sigmoid')
-            ])
-            model.compile(optimizer = 'adam',
-                metrics=['accuracy'], loss = 'categorical_crossentropy')
-            model.fit(self.image,self.y,verbose=0)
+            block = YBlock(4, 4, 8, stride = 1)
+            output = block(self.image)
+            assert output.shape == (10,10,10,8)
         else:
             raise unittest.case.SkipTest("GPU not available on this machine, skipping.")
 
+    def test_YBlock_stride2_case2(self):
+        if len(self.devices) > 1:
+            # Grouped convs are available only on GPU
+            block = YBlock(4, 4, 4, stride = 2)
+            output = block(self.image)
+            assert output.shape == (10,10,10,8)
+        else:
+            raise unittest.case.SkipTest("GPU not available on this machine, skipping.")
 
 
 
