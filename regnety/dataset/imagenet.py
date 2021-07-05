@@ -37,7 +37,7 @@ class ImageNet:
         self,
         tfrecs_filepath: List[str]  = None,
         batch_size: int = 128,
-        image_size: int = 224,
+        image_size: int = 512,
         augment_fn: Union[str, Callable]  = "default",
         num_classes: int = 10,
         randaugment: bool = True,
@@ -55,8 +55,8 @@ class ImageNet:
             self._augmenter = WeakRandAugment(strength=5, num_augs=2, batch_size = batch_size)
 
 
-    @tf.function
-    def decode_example(self, example: tf.Tensor) -> dict:
+    
+    def decode_example(self, example_: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
         Args:
             example: A TFRecord dataset example.
@@ -64,6 +64,8 @@ class ImageNet:
             Dict containing attributes from a single example. Follows
             the same names as TFRECORDS_FORMAT.
         """
+
+        example =  tf.io.parse_example(example_, _TFRECS_FORMAT)
         image = tf.reshape(tf.io.decode_jpeg(example["image"]), (512,512,3))
         height = example['height']
         width = example['width']
@@ -101,10 +103,7 @@ class ImageNet:
           num_parallel_calls = tf.data.AUTOTUNE,
           deterministic=False)
 
-        ds = ds.map(
-            lambda example: tf.io.parse_example(example, _TFRECS_FORMAT),
-            num_parallel_calls = tf.data.AUTOTUNE
-        )
+       
         ds = ds.map(
             self.decode_example, 
             num_parallel_calls = tf.data.AUTOTUNE 
@@ -114,7 +113,7 @@ class ImageNet:
        
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)
-        ds = ds.prefetch(tf.data.AUTOTUNE)
+        #ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
 
 
@@ -165,11 +164,7 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
         
-        ds = ds.map(
-            self._one_hot_encode_example,
-            num_parallel_calls = tf.data.AUTOTUNE
-        )
-
+        
 
         if self.randaugment:
             ds = ds.map(
@@ -177,7 +172,12 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
         
+        ds = ds.map(
+            self._one_hot_encode_example,
+            num_parallel_calls = tf.data.AUTOTUNE
+        )
 
-        ds = ds.prefetch(tf.data.AUTOTUNE)
+        
+
 
         return ds

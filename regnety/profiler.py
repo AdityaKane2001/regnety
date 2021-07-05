@@ -22,6 +22,8 @@ imgnet = imagenet.ImageNet(
 )
 
 ds = imgnet.make_dataset()
+
+ds = ds.prefetch(tf.data.AUTOTUNE)
 # k=0
 # for i in ds:
 #     im = i[0][0].numpy() / 255.
@@ -37,7 +39,7 @@ ds = imgnet.make_dataset()
 
 model = tf.keras.Sequential(
     [
-     tf.keras.layers.InputLayer(input_shape = (224,224,3)),
+     tf.keras.layers.InputLayer(input_shape = (512,512,3)),
      tf.keras.layers.experimental.preprocessing.Normalization(mean = 0, variance = 1),
      tf.keras.layers.Conv2D(10, 5),
      tf.keras.layers.GlobalAveragePooling2D(),
