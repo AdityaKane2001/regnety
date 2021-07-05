@@ -58,7 +58,7 @@ tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  profile_batch = '2,45')
 
 model.fit(ds,
-          epochs=5,
+          epochs=10,
           steps_per_epoch = 10,
           #validation_data=ds_test,
           callbacks = [tboard_callback])
