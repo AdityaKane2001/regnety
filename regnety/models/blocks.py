@@ -52,6 +52,11 @@ class PreStem(layers.Layer):
         x = self.resize(x)
         x = self.norm(x)
         return x
+    
+    def get_config(self):
+        """
+        
+        """
 
 
 class Stem(layers.Layer):
@@ -293,6 +298,3 @@ class Head(layers.Layer):
         x = self.gap(inputs)
         x = self.fc(x)
         return x 
-
-
-

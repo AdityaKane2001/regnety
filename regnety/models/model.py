@@ -29,14 +29,10 @@ class RegNetY(tf.keras.Model):
     def call(self, inputs):
         self.model.call(inputs)
     
-    def plot_model(self, imgpath = "model.png"):
-        tf.keras.utils.plot_model(
-                self.model,
-                to_file=imgpath,
-                show_shapes=True,
-                show_dtype=True,
-                show_layer_names=True,
-            )
+    def get_model(self):
+        """Returns sequential model constructed in this class"""
+        return self.model
+    
 
     def _get_model_with_config(self, config):
         """
