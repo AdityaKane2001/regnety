@@ -55,10 +55,10 @@ logs = "logs/" + '128_no_cache'
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                  histogram_freq = 1,
-                                                 profile_batch = '2,45')
+                                                 profile_batch = '2,29')
 
 model.fit(ds,
-          epochs=10,
+          epochs=3,
           steps_per_epoch = 10,
           #validation_data=ds_test,
           callbacks = [tboard_callback])

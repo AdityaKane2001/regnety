@@ -182,18 +182,18 @@ class WeakRandAugment:
         """
         
         aug_images = tf.cast(images, tf.uint8)
-        aug_functions = self.get_aug_list(images)
+        aug_images = self.color_jitter(aug_images)
+        aug_images = self.rotate(aug_images)
 
+        # for i in self.augs:
+        #     tf.autograph.experimental.set_loop_options(
+        #         shape_invariants=[(aug_images, 
+        #             tf.TensorShape([self.batch_size, 512, 512, 3]))])
 
-        for i in self.augs:
-            tf.autograph.experimental.set_loop_options(
-                shape_invariants=[(aug_images, 
-                    tf.TensorShape([self.batch_size, 512, 512, 3]))])
-
-            aug_images = tf.switch_case(
-                i,
-                aug_functions
-            )
+        #     aug_images = tf.switch_case(
+        #         i,
+        #         aug_functions
+        #     )
 
         return aug_images
 
@@ -209,12 +209,8 @@ class WeakRandAugment:
         augs = dict()
         
         augs[0] = lambda: self.color_jitter(batch)
-        augs[1] = lambda: self.cutout(batch)
-        #augs[2] = lambda: self.equalize(batch)
-        augs[2] = lambda: self.invert(batch)
-        augs[3] = lambda: self.rotate(batch)
-        augs[4] = lambda: self.sharpen(batch)
-        augs[5] = lambda: self.solarize(batch)
+        augs[1] = lambda: self.rotate(batch)
+
         
 
         return augs
