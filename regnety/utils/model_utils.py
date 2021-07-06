@@ -32,11 +32,6 @@ def get_layer_names_dict(regnety_instance: regnety.regnety.models.model.RegNetY)
         Dict which contains names of all layers in a hierarchical manner 
     """
 
-    model = regnety_instance.get_model()
-    names_dict = dict()
+    pass
 
-    for section in model.layers:
-        names_dict[section.name] = []
-        for layer in section.layers:
-            if 
 

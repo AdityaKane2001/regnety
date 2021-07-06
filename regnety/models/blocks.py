@@ -3,7 +3,7 @@
 import tensorflow as tf
 
 from tensorflow.keras import layers
-from typing import Union
+
 
 # Contains:
 # 0. PreStem 
@@ -32,7 +32,7 @@ class PreStem(layers.Layer):
         variance: tf.Tensor = _VAR,
         crop_size: int = 320
     ):
-        super(PreStem, self).__init__()
+        super(PreStem, self).__init__(name = 'PreStem')
         self.crop_size = crop_size
         self.mean = mean
         self.var = variance
@@ -54,9 +54,14 @@ class PreStem(layers.Layer):
         return x
     
     def get_config(self):
-        """
         
-        """
+        config = super(PreStem, self).get_config()
+        config.update({
+            'mean' : self.mean,
+            'variance': self.var,
+            'crop_size': self.crop_size 
+        })
+        return config
 
 
 class Stem(layers.Layer):
@@ -68,7 +73,7 @@ class Stem(layers.Layer):
     """
 
     def __init__(self):
-        super(Stem, self).__init__()
+        super(Stem, self).__init__(name = 'Stem')
         self.conv3x3 =  layers.Conv2D(32, (3,3), strides = 2)
         self.bn = layers.BatchNormalization(
             momentum = 0.9, epsilon = 0.00001
@@ -80,6 +85,11 @@ class Stem(layers.Layer):
         x = self.bn(x)
         x = self.act(x)
         return x
+    
+    def get_config(self):
+        
+        config = super(Stem, self).get_config()
+        return config
 
 class SE(layers.Layer):
     """
@@ -92,13 +102,15 @@ class SE(layers.Layer):
     """
 
     def __init__(self, 
-        in_filters: int,
+        in_filters: int = 0,
         se_ratio: float = 0.25,
         name_prefix: str = ''
     ):
         super(SE, self).__init__(name = name_prefix + 'SE')
         
-        self.se_filters = int(in_filters * se_ratio)
+        self.in_filters = in_filters
+        self.se_ratio = se_ratio
+        self.se_filters = int(self.in_filters * self.se_ratio)
         self.out_filters = in_filters
         self.pref = name_prefix
 
@@ -123,6 +135,16 @@ class SE(layers.Layer):
         x = tf.reshape(x, [-1,1,1,self.out_filters])
         x = tf.math.multiply(x, inputs) # x: (h,w,out_filters)
         return x
+    
+    def get_config(self):
+        
+        config = super(SE, self).get_config()
+        config.update({
+            'in_filters' : self.in_filters,
+            'se_ratio': self.se_ratio,
+            'name_prefix': self.pref 
+        })
+        return config
         
 
 class YBlock(layers.Layer):
@@ -140,9 +162,9 @@ class YBlock(layers.Layer):
     """
 
     def __init__(self,
-        group_width:int,
-        in_filters:int,
-        out_filters:int,
+        group_width:int = 0,
+        in_filters:int = 0,
+        out_filters:int = 0,
         stride:int = 1,
         name_prefix: str = ''
     ):
@@ -159,7 +181,7 @@ class YBlock(layers.Layer):
         self.conv1x1_1 = layers.Conv2D(out_filters, (1,1), 
             name = self.pref + '_conv1x1_1'
         )
-        self.se = SE(out_filters, name_prefix = self.pref)
+        self.se = SE(out_filters, name_prefix = self.pref + '_')
         self.conv1x1_2 = layers.Conv2D(out_filters, (1,1), 
             name = self.pref + '_conv1x1_2'
         )
@@ -231,6 +253,18 @@ class YBlock(layers.Layer):
 
         return x
     
+    def get_config(self):
+        
+        config = super(YBlock, self).get_config()
+        config.update({
+            'group_width': self.group_width,
+            'in_filters': self.in_filters,
+            'out_filters': self.out_filters,
+            'stride': self.stride,
+            'name_prefix': self.pref
+        })
+        return config
+    
 
 
 class Stage(layers.Layer):
@@ -249,15 +283,20 @@ class Stage(layers.Layer):
     """
 
     def __init__(self,
-        depth:int,
-        group_width:int,
-        in_filters:int,
-        out_filters:int,
+        depth:int = 0,
+        group_width:int = 0,
+        in_filters:int = 0,
+        out_filters:int = 0,
         stage_num: int = 0
     ):
         super(Stage, self).__init__(name = 'Stage_' + str(stage_num))
         
         self.depth = depth
+        self.group_width = group_width
+        self.in_filters = in_filters
+        self.out_filters = out_filters
+        self.stage_num = stage_num
+
         self.pref = 'Stage_' + str(stage_num) + '_'
 
         self.stage = []
@@ -279,11 +318,23 @@ class Stage(layers.Layer):
             x = self.stage[i](x)
         
         return x
+    
+    def get_config(self):
+        config = super(YBlock, self).get_config()
+        config.update({
+            'depth' = self.depth,
+            'group_width' = self.group_width,
+            'in_filters' = self.in_filters,
+            'out_filters' = self.out_filters,
+            'stage_num' = self.stage_num
+        })
+        return config
+        
 
 
 class Head(layers.Layer):
     """
-    Head for all RegNetY models.
+    Head for all RegNetY models. Returns logits.
 
     Args:
         num_classes: Integer specifying number of classes of data. 
@@ -291,10 +342,18 @@ class Head(layers.Layer):
     def __init__(self, num_classes):
         super(Head, self).__init__(name = 'Head')
 
+        self.num_classes = num_classes
         self.gap = layers.GlobalAveragePooling2D(name = 'Head_global_avg_pool')
-        self.fc = layers.Dense(num_classes, name = 'Head_fc')
+        self.fc = layers.Dense(self.num_classes, name = 'Head_fc')
     
     def call(self, inputs):
         x = self.gap(inputs)
         x = self.fc(x)
         return x 
+    
+    def get_config(self):
+        config = super(YBlock, self).get_config()
+        config.update({
+            'num_classes' : self.num_classes
+        })
+        return config
