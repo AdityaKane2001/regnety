@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from regnety.regnety.config import get_model_config, ALLOWED_FLOPS
-from blocks import Stem, Stage, Head
+from blocks import PreStem, Stem, Stage, Head
 
 class RegNetY(tf.keras.Model):
     """
@@ -44,6 +44,7 @@ class RegNetY(tf.keras.Model):
          
         """
         model = tf.keras.models.Sequential()
+        model.add(PreStem())
         model.add(Stem())
 
         in_channels = 32 # Output channels from Stem
@@ -57,7 +58,8 @@ class RegNetY(tf.keras.Model):
                 depth,
                 group_width,
                 in_channels,
-                out_channels
+                out_channels,
+                stage_num = i
             ))
             
             in_channels = out_channels
@@ -66,4 +68,5 @@ class RegNetY(tf.keras.Model):
 
         return model
 
-
+model = RegNetY('200mf')
+print([layer.name for layer in model.get_layer('sequential').layers])

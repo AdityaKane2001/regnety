@@ -1,9 +1,12 @@
 """Contains the building blocks of RegNetY models."""
 
 import tensorflow as tf
+
 from tensorflow.keras import layers
+from typing import Union
 
 # Contains:
+# 0. PreStem 
 # 1. Stem
 # 2. Body
 #     2.1 Block
@@ -11,6 +14,45 @@ from tensorflow.keras import layers
 # 3. Head
 # 4. RegNetY
 # Reference: https://arxiv.org/pdf/2003.13678.pdf
+
+_MEAN = tf.constant([0.485, 0.456, 0.406])
+_VAR = tf.constant([0.052441, 0.050176, 0.050625])
+
+class PreStem(layers.Layer):
+    """Contains preprocessing layers which are to be included in the model.
+    
+    Args: 
+        mean: Mean to normalize to
+        variance: Variance to normalize to
+        crop_size: Size to take random crop to before resizing to 224x224 
+    """
+
+    def __init__(self,
+        mean: tf.Tensor = _MEAN,
+        variance: tf.Tensor = _VAR,
+        crop_size: int = 320
+    ):
+        super(PreStem, self).__init__()
+        self.crop_size = crop_size
+        self.mean = mean
+        self.var = variance
+
+        self.rand_crop = layers.experimental.preprocessing.RandomCrop(
+            self.crop_size, self.crop_size, name = 'prestem_random_crop'
+        )
+        self.resize = layers.experimental.preprocessing.Resizing(
+            224, 224, name = 'prestem_resize'
+        )
+        self.norm = layers.experimental.preprocessing.Normalization(
+            mean = self.mean, variance = self.var, name = 'prestem_normalize'
+        )
+    
+    def call(self, inputs):
+        x = self.rand_crop(inputs)
+        x = self.resize(x)
+        x = self.norm(x)
+        return x
+
 
 class Stem(layers.Layer):
     """Class to initiate stem architecture from the paper (see `Reference` 
@@ -41,19 +83,32 @@ class SE(layers.Layer):
     Args:
         in_filters: Input filters. Output filters are equal to input filters 
         se_ratio: Ratio for bottleneck filters
+        name_prefix: prefix to be given to name
     """
 
     def __init__(self, 
         in_filters: int,
-        se_ratio: float = 0.25
+        se_ratio: float = 0.25,
+        name_prefix: str = ''
     ):
-        super(SE, self).__init__()
+        super(SE, self).__init__(name = name_prefix + 'SE')
         
         self.se_filters = int(in_filters * se_ratio)
         self.out_filters = in_filters
-        self.ga_pool = layers.GlobalAveragePooling2D()
-        self.squeeze_dense = layers.Dense(self.se_filters, activation = 'relu')
-        self.excite_dense = layers.Dense(self.out_filters,  activation = 'sigmoid')
+        self.pref = name_prefix
+
+        self.ga_pool = layers.GlobalAveragePooling2D(
+            name = self.pref + '_global_avg_pool'
+        )
+        self.squeeze_dense = layers.Dense(
+            self.se_filters, activation = 'relu', 
+            name = self.pref + '_squeeze_dense'
+        )
+        self.excite_dense = layers.Dense(
+            self.out_filters,  activation = 'sigmoid', 
+            name = self.pref + '_excite_dense'
+        )
+        
         
     def call(self, inputs):
         # input shape: (h,w,out_filters)
@@ -76,37 +131,50 @@ class YBlock(layers.Layer):
         in_filters: Input filters in this block
         out_filters: Output filters for this block
         stride: Stride for block
+        name_prefix: prefix for name
     """
 
     def __init__(self,
         group_width:int,
         in_filters:int,
         out_filters:int,
-        stride:int = 1
+        stride:int = 1,
+        name_prefix: str = ''
     ):
-        super(YBlock, self).__init__()
+        super(YBlock, self).__init__(name = name_prefix)
 
         self.group_width = group_width
         self.in_filters = in_filters
         self.out_filters = out_filters
         self.stride = stride
+        self.pref = name_prefix
 
         self.groups = self.out_filters // self.group_width
 
-        self.conv1x1_1 = layers.Conv2D(out_filters, (1,1))
-        self.se = SE(out_filters)
-        self.conv1x1_2 = layers.Conv2D(out_filters, (1,1))
+        self.conv1x1_1 = layers.Conv2D(out_filters, (1,1), 
+            name = self.pref + '_conv1x1_1'
+        )
+        self.se = SE(out_filters, name_prefix = self.pref)
+        self.conv1x1_2 = layers.Conv2D(out_filters, (1,1), 
+            name = self.pref + '_conv1x1_2'
+        )
 
         self.bn1x1_1 = layers.BatchNormalization(
-            momentum = 0.9, epsilon = 0.00001)
+            momentum = 0.9, epsilon = 0.00001, 
+            name = self.pref + '_bn1x1_1'
+        )
         self.bn3x3 = layers.BatchNormalization(
-            momentum = 0.9, epsilon = 0.00001)
+            momentum = 0.9, epsilon = 0.00001, 
+            name = self.pref + '_bn3x3'
+        )
         self.bn1x1_2 = layers.BatchNormalization(
-            momentum = 0.9, epsilon = 0.00001)
+            momentum = 0.9, epsilon = 0.00001, 
+            name = self.pref + '_bn1x1_2'
+        )
 
-        self.relu1x1_1 = layers.ReLU()
-        self.relu3x3 = layers.ReLU()
-        self.relu1x1_2 = layers.ReLU()
+        self.relu1x1_1 = layers.ReLU(name = self.pref + '_relu1x1_1')
+        self.relu3x3 = layers.ReLU(name = self.pref + '_relu3x3')
+        self.relu1x1_2 = layers.ReLU(name = self.pref + '_relu1x1_2')
 
         self.skip_conv = None
         self.conv3x3 = None
@@ -115,18 +183,20 @@ class YBlock(layers.Layer):
 
         if (in_filters != out_filters) or (stride != 1):
             self.skip_conv = layers.Conv2D(
-                out_filters, (1, 1), strides=2)
-            self.bn_skip = layers.BatchNormalization()
-            self.relu_skip = layers.ReLU()    
+                out_filters, (1, 1), strides=2, name = self.pref + '_conv_skip')
+            self.bn_skip = layers.BatchNormalization(
+                name = self.pref + '_bn_skip'
+            )
+            self.relu_skip = layers.ReLU(name = self.pref + '_relu_skip')    
  
             self.conv3x3 = layers.Conv2D(
                 out_filters, (3, 3), strides = 2, groups = self.groups, 
-                padding = 'same')
+                padding = 'same', name = self.pref + '_conv3x3')
  
         else:
             self.conv3x3 = layers.Conv2D(
                 out_filters, (3, 3), strides = 1, groups = self.groups, 
-                padding = 'same')
+                padding = 'same', name = self.pref + '_conv3x3' )
         
     
     def call(self, inputs):
@@ -177,19 +247,25 @@ class Stage(layers.Layer):
         depth:int,
         group_width:int,
         in_filters:int,
-        out_filters:int
+        out_filters:int,
+        stage_num: int = 0
     ):
-        super(Stage, self).__init__()
+        super(Stage, self).__init__(name = 'Stage_' + str(stage_num))
         
         self.depth = depth
+        self.pref = 'Stage_' + str(stage_num) + '_'
 
         self.stage = []
 
-        self.stage.append(YBlock(group_width, in_filters, out_filters, stride = 2))
+        self.stage.append(YBlock(
+            group_width, in_filters, out_filters, stride = 2,
+            name_prefix = self.pref + 'YBlock_0'
+        ))
 
-        for _ in range(depth - 1):
+        for block_num in range(depth - 1):
             self.stage.append(
-                YBlock(group_width, out_filters, out_filters, stride = 1)
+                YBlock(group_width, out_filters, out_filters, stride = 1, 
+                name_prefix = self.pref + 'YBlock_' + str(block_num + 1))
             )
 
     def call(self, inputs):
@@ -208,10 +284,10 @@ class Head(layers.Layer):
         num_classes: Integer specifying number of classes of data. 
     """
     def __init__(self, num_classes):
-        super(Head, self).__init__()
+        super(Head, self).__init__(name = 'Head')
 
-        self.gap = layers.GlobalAveragePooling2D()
-        self.fc = layers.Dense(num_classes)
+        self.gap = layers.GlobalAveragePooling2D(name = 'Head_global_avg_pool')
+        self.fc = layers.Dense(num_classes, name = 'Head_fc')
     
     def call(self, inputs):
         x = self.gap(inputs)
