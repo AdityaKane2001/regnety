@@ -182,35 +182,19 @@ class WeakRandAugment:
         """
         
         aug_images = tf.cast(images, tf.uint8)
-        # aug_functions = self.get_aug_list(images)
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.color_jitter(aug_images)
+        aug_functions = self.get_aug_list(images)
 
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.cutout(aug_images)
 
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.invert(aug_images)
+        for i in self.augs:
+            tf.autograph.experimental.set_loop_options(
+                shape_invariants=[(aug_images, 
+                    tf.TensorShape([self.batch_size, 512, 512, 3]))])
 
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.invert(aug_images)
+            aug_images = tf.switch_case(
+                i,
+                aug_functions
+            )
 
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.rotate(aug_images)
-
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.sharpen(aug_images)
-            
-        
-        if tf.random.uniform(()) > 0.5:
-            aug_images = self.solarize(aug_images)
-            
         return aug_images
 
 
