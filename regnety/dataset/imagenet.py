@@ -52,7 +52,6 @@ class ImageNet:
         self.num_classes = num_classes
         self.randaugment = randaugment
         if self.randaugment:
-            self._augmenter = WeakRandAugment(strength=5, num_augs=2, batch_size = batch_size)
             self.strength = 5
 
 
@@ -234,15 +233,15 @@ class ImageNet:
                 num_parallel_calls = tf.data.AUTOTUNE
             )
 
-            ds = ds.map(
-                self.random_rotate,
-                num_parallel_calls = tf.data.AUTOTUNE
-            )
+            # ds = ds.map(
+            #     self.random_rotate,
+            #     num_parallel_calls = tf.data.AUTOTUNE
+            # )
 
-            ds =  ds.map(
-                self.random_crop,
-                num_parallel_calls = tf.data.AUTOTUNE
-            )
+            # ds =  ds.map(
+            #     self.random_crop,
+            #     num_parallel_calls = tf.data.AUTOTUNE
+            # )
 
 
         return ds
