@@ -67,7 +67,7 @@ class ImageNet:
         """
 
         example =  tf.io.parse_example(example_, _TFRECS_FORMAT)
-        image = tf.reshape(tf.io.decode_jpeg(example["image"]), (512,512,3))
+        image = tf.reshape(tf.io.parse_tensor(example["image"]), (512,512,3))
         height = example['height']
         width = example['width']
         filename = example["filename"]

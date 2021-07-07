@@ -16,7 +16,7 @@ from dataset import imagenet
 tf.keras.backend.clear_session()
 
 imgnet = imagenet.ImageNet(
-    tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/*.tfrecord'),
+    tf.io.gfile.glob('gs://adityakane-imagenette-tfrecs/tensor_tfrecs/*.tfrecord'),
     randaugment = True,
     batch_size = 128
 )
