@@ -25,17 +25,25 @@ class PreStem(layers.Layer):
         mean: Mean to normalize to
         variance: Variance to normalize to
         crop_size: Size to take random crop to before resizing to 224x224 
+        factor: Factor for random rotation
     """
 
     def __init__(self,
         mean: tf.Tensor = _MEAN,
         variance: tf.Tensor = _VAR,
-        crop_size: int = 320
+        crop_size: int = 320,
+        factor: float = 0.25
     ):
         super(PreStem, self).__init__(name = 'PreStem')
         self.crop_size = crop_size
         self.mean = mean
         self.var = variance
+        self.factor = factor
+
+        self.rand_rot = layers.experimental.preprocessing.RandomRotation(
+            self.factor, fill_mode = 'constant', fill_value = 128.0, 
+            name = 'prestem_random_rotate'
+        )
 
         self.rand_crop = layers.experimental.preprocessing.RandomCrop(
             self.crop_size, self.crop_size, name = 'prestem_random_crop'
@@ -48,7 +56,8 @@ class PreStem(layers.Layer):
         )
     
     def call(self, inputs):
-        x = self.rand_crop(inputs)
+        x = self.rand_rot(inputs)
+        x = self.rand_crop(x)
         x = self.resize(x)
         x = self.norm(x)
         return x
@@ -59,7 +68,8 @@ class PreStem(layers.Layer):
         config.update({
             'mean' : self.mean,
             'variance': self.var,
-            'crop_size': self.crop_size 
+            'crop_size': self.crop_size,
+            'factor': self.factor
         })
         return config
 
