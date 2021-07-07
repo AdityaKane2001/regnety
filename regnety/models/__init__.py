@@ -1,4 +1,4 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
-from model import RegNetY
+from regnety.regnety.models.model import RegNetY

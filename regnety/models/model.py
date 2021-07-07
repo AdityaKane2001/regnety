@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from regnety.regnety.config import get_model_config, ALLOWED_FLOPS
-from blocks import PreStem, Stem, Stage, Head
+from regnety.regnety.models.blocks import PreStem, Stem, Stage, Head
 
 class RegNetY(tf.keras.Model):
     """
@@ -40,6 +40,7 @@ class RegNetY(tf.keras.Model):
          
         """
         model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.InputLayer(input_shape = (224,224,3)))
         model.add(PreStem())
         model.add(Stem())
 

@@ -33,7 +33,8 @@ class PreStem(layers.Layer):
         super(PreStem, self).__init__(name = 'PreStem')
         self.mean = mean
         self.var = variance
-        
+        # self.inplayer = tf.keras.layers.InputLayer(input_shape = (224,224,3))
+
         self.resize = layers.experimental.preprocessing.Resizing(
             224, 224, name = 'prestem_resize'
         )
@@ -42,6 +43,7 @@ class PreStem(layers.Layer):
         )
     
     def call(self, inputs):
+        # x = self.inplayer(inputs)
         x = self.resize(inputs)
         x = self.norm(x)
         return x
@@ -314,11 +316,11 @@ class Stage(layers.Layer):
     def get_config(self):
         config = super(YBlock, self).get_config()
         config.update({
-            'depth' = self.depth,
-            'group_width' = self.group_width,
-            'in_filters' = self.in_filters,
-            'out_filters' = self.out_filters,
-            'stage_num' = self.stage_num
+            'depth' : self.depth,
+            'group_width' : self.group_width,
+            'in_filters' : self.in_filters,
+            'out_filters' : self.out_filters,
+            'stage_num' : self.stage_num
         })
         return config
         
