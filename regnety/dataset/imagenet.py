@@ -1,8 +1,8 @@
+import math
 import tensorflow as tf
+import tensorflow_addons as tfa
 import os
 
-from regnety.regnety.dataset.augment import WeakRandAugment
-from official.vision.image_classification.augment import RandAugment
 from typing import Union, Callable, Tuple, List, Type
 
 _TFRECS_FORMAT = {
@@ -91,10 +91,7 @@ class ImageNet:
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
 
-
         options = tf.data.Options()
-
-
         options.experimental_deterministic = False
 
         files = files.with_options(options)
@@ -103,13 +100,12 @@ class ImageNet:
           num_parallel_calls = tf.data.AUTOTUNE,
           deterministic=False)
 
-       
         ds = ds.map(
             self.decode_example, 
             num_parallel_calls = tf.data.AUTOTUNE 
         )
 
-        ds = ds.cache(tf_cache)
+        ds = ds.cache('tf_cache')
        
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)
@@ -156,8 +152,10 @@ class ImageNet:
         aug_images = tf.image.random_hue(aug_images, hue_delta)
         aug_images = tf.image.random_saturation(aug_images, saturation_lower, 
             saturation_upper)
+        aug_images = tf.image.random_flip_left_right(aug_images)
         
         return aug_images, target
+
 
 
     def solarize(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -174,6 +172,37 @@ class ImageNet:
 
         return solarized, target
 
+
+
+    def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """"
+        Randomly rotates images
+
+        Args: 
+            example:example with batch of images to be augmented
+
+        Returns:
+            Augmented example with batch of images with same dimensions 
+        """
+
+        angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.)
+        rotated = tfa.image.rotate(image, angles, fill_value = 128.0)
+        return rotated, target
+
+
+    def random_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """"
+        Returns random crop of images
+
+        Args: 
+            example:example with batch of images to be augmented
+
+        Returns:
+            Cropped example with batch of images with same dimensions 
+        """
+
+        cropped = tf.image.random_crop(image, size=(self.batch_size, 320, 320, 3))
+        return cropped, target        
 
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
@@ -202,6 +231,16 @@ class ImageNet:
 
             ds = ds.map(
                 self.solarize,
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
+
+            ds = ds.map(
+                self.random_rotate,
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
+
+            ds =  ds.map(
+                self.random_crop,
                 num_parallel_calls = tf.data.AUTOTUNE
             )
 
