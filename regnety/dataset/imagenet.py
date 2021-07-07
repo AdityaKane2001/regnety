@@ -67,7 +67,7 @@ class ImageNet:
         """
 
         example =  tf.io.parse_example(example_, _TFRECS_FORMAT)
-        image = tf.reshape(tf.io.parse_tensor(example["image"]), (512,512,3))
+        image = tf.reshape(tf.io.decode_jpeg(example["image"]), (512,512,3))
         height = example['height']
         width = example['width']
         filename = example["filename"]
@@ -129,19 +129,19 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def color_jitter(self, example: dict) -> dict:
+    def color_jitter(self, image, target) -> dict:
         """
         Performs color jitter on the batch. Random brightness, hue, saturation, 
         and contrast
 
         Args: 
-            images: batch of images to be augmented
+            example:example with batch of images to be augmented
 
         Returns:
-            Augmented batch of images with same dimensions 
+            Augmented example with batch of images with same dimensions 
         """
         
-        images = example['image']
+        
         brightness_delta = self.strength * 0.1
         contrast_lower = 1 - 0.5 * (self.strength /10.)
         contrast_upper = 1 + 0.5 * (self.strength /10.)
@@ -149,43 +149,30 @@ class ImageNet:
         saturation_lower = 1 - 0.5 * (self.strength /10.)
         saturation_upper = (1 - 0.5 * (self.strength /10.)) * 5
         
-        aug_images = tf.image.random_brightness(images, brightness_delta)
+        aug_images = tf.image.random_brightness(image, brightness_delta)
         aug_images = tf.image.random_contrast(aug_images, contrast_lower, 
             contrast_upper)
         aug_images = tf.image.random_hue(aug_images, hue_delta)
         aug_images = tf.image.random_saturation(aug_images, saturation_lower, 
             saturation_upper)
         
-        return {
-            "image": aug_images,
-            "height": self.image_size,
-            "width": self.image_size,
-            "filename": example["filename"],
-            "label": example["label"],
-            "synset": example["synset"],
-        }
+        return aug_images, target
 
 
-    def _randaugment(self, example: dict) -> dict:
-        """Wrapper for tf vision's RandAugment.distort function which
-        accepts examples as input instead of images. Uses magnitude = 5
-        as per pycls/pycls/datasets/augment.py#L29.
-        Args:
-            example: Example having the key 'image'
+    def solarize(self, image, target) -> tuple:
+        """"
+        Implements solarize augmentation
+
+        Args: 
+            example:example with batch of images to be augmented
+
         Returns:
-            example in which RandAugment has been applied to the image
+            Augmented example with batch of images with same dimensions 
         """
-        image = example['image']
+        solarized = tf.where(image < 128, image, 255 - image)
 
-        image = self._augmenter.apply_augs(image)
-        return {
-            "image": image,
-            "height": self.image_size,
-            "width": self.image_size,
-            "filename": example["filename"],
-            "label": example["label"],
-            "synset": example["synset"],
-        }
+        return solarized, target
+
 
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
@@ -201,18 +188,23 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
         
-        
+        ds = ds.map(
+            self._one_hot_encode_example,
+            num_parallel_calls = tf.data.AUTOTUNE
+        )
 
         if self.randaugment:
             ds = ds.map(
                 self.color_jitter,
                 num_parallel_calls = tf.data.AUTOTUNE
             )
+
+            ds = ds.map(
+                self.solarize,
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
         
-        ds = ds.map(
-            self._one_hot_encode_example,
-            num_parallel_calls = tf.data.AUTOTUNE
-        )
+        
         
            
 
