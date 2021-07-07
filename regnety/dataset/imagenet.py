@@ -92,7 +92,6 @@ class ImageNet:
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
 
 
-        #files = files.take(1)
         options = tf.data.Options()
 
 
@@ -110,16 +109,16 @@ class ImageNet:
             num_parallel_calls = tf.data.AUTOTUNE 
         )
 
-        #ds = ds.cache()
+        ds = ds.cache(tf_cache)
        
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)
-        #ds = ds.prefetch(tf.data.AUTOTUNE)
+        ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
 
 
     
-    def _one_hot_encode_example(self, example: dict) -> dict:
+    def _one_hot_encode_example(self, example: dict) -> tuple:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
         Args:
@@ -129,7 +128,9 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def color_jitter(self, image, target) -> dict:
+
+
+    def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Performs color jitter on the batch. Random brightness, hue, saturation, 
         and contrast
@@ -159,7 +160,7 @@ class ImageNet:
         return aug_images, target
 
 
-    def solarize(self, image, target) -> tuple:
+    def solarize(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """"
         Implements solarize augmentation
 
@@ -203,10 +204,6 @@ class ImageNet:
                 self.solarize,
                 num_parallel_calls = tf.data.AUTOTUNE
             )
-        
-        
-        
-           
 
 
         return ds
