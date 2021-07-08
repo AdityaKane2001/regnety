@@ -54,7 +54,6 @@ class ImageNet:
         if self.randaugment:
             self.strength = 5
 
-
     
     def decode_example(self, example_: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes
@@ -111,8 +110,7 @@ class ImageNet:
         ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
 
-
-    
+  
     def _one_hot_encode_example(self, example: dict) -> tuple:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
@@ -157,22 +155,6 @@ class ImageNet:
 
 
 
-    def solarize(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """"
-        Implements solarize augmentation
-
-        Args: 
-            example:example with batch of images to be augmented
-
-        Returns:
-            Augmented example with batch of images with same dimensions 
-        """
-        solarized = tf.where(image < 128, image, 255 - image)
-
-        return solarized, target
-
-
-
     def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """"
         Randomly rotates images
@@ -212,7 +194,7 @@ class ImageNet:
             Dataset having the final format as follows:
             {
                 'image' : (batch_size, self.image_size, self.image_size, 3)
-                'target' : (num_classes,)
+                'target' : (batch_size, num_classes)
             }
         """
         ds = self._read_tfrecs()
@@ -229,19 +211,14 @@ class ImageNet:
             )
 
             ds = ds.map(
-                self.solarize,
+                self.random_rotate,
                 num_parallel_calls = tf.data.AUTOTUNE
             )
 
-            # ds = ds.map(
-            #     self.random_rotate,
-            #     num_parallel_calls = tf.data.AUTOTUNE
-            # )
-
-            # ds =  ds.map(
-            #     self.random_crop,
-            #     num_parallel_calls = tf.data.AUTOTUNE
-            # )
+            ds =  ds.map(
+                self.random_crop,
+                num_parallel_calls = tf.data.AUTOTUNE
+            )
 
 
         return ds
