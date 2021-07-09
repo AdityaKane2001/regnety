@@ -58,10 +58,41 @@ def _get_default_synset_path() -> str:
     regnety_path = '/'.join(path_segments[:-2])
     return os.path.join(regnety_path, 'config', 'imagenet_synset_to_human.json')
 
+
+def _get_default_validation_labels_path() -> str:
+    self_path = __file__
+    path_segments = self_path.split('/')
+    regnety_path = '/'.join(path_segments[:-2])
+    return os.path.join(regnety_path, 'config', 'valid_labels.txt')
+
+
+
+def _get_validation_info(
+    data_dir: str,
+    synset_filepath: str,
+) -> Tuple[
+    List[str],
+    List[int],
+    List[str]
+]:
+    all_images = tf.io.gfile.glob(os.path.join(data_dir, "*.JPEG"))
+    all_images.sort()
+    with open(_get_default_validation_labels_path(),'r') as f:
+        all_lines = f.readlines()
+        all_labels_int = list(map(
+            lambda line: int(line.split()[1].strip('\n'))
+        ), all_lines)
+    labels_dict = _get_synset_labels(synset_filepath)
+    all_synsets = [labels_dict[str(i)]['id'] for i in all_labels_int]
+
+    return all_images, all_labels_int, all_synsets
+
+
 def _get_files(
     data_dir: str,
     synset_filepath: str,
-    shuffle: bool = True) -> Tuple[
+    shuffle: bool = True,
+    val:bool = False) -> Tuple[
         List[str],
         List[int],
         List[str]
@@ -79,17 +110,24 @@ def _get_files(
         all_labels: integer labels corresponding to images in all_images list
         all_synsets: synset strings corresponding to images in all_images list
     """
+
+    if val:
+        return _get_validation_info(data_dir, synset_filepath)
+
+    labels_dict = _get_synset_labels(synset_filepath)
+
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*", "*.JPEG"))
+
     all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
     all_indexes = list(range(len(all_images)))
-    if shuffle:
+    
+    if shuffle and not val:
         random.shuffle(all_indexes)
 
     all_images = [all_images[i] for i in all_indexes]
     all_synsets = [all_synsets[i][1:] + "-n" for i in all_indexes]
 
-    labels_dict = _get_synset_labels(synset_filepath)
 
     all_labels_int = [labels_dict[i][0] for i in all_synsets]
     all_synsets = [labels_dict[i][1] for i in all_synsets]
@@ -228,7 +266,8 @@ def make_tfrecs(
     synset_filepath: str = '',
     batch_size: int = 1024,
     logging_frequency: int = 1,
-    shuffle: bool = True
+    shuffle: bool = True,
+    val: bool = False
 ):
     """
     Only public function of the module. Makes TFReocrds and stores them in
@@ -252,7 +291,7 @@ def make_tfrecs(
     """
     
     if '' in (dataset_base_dir, output_dir, file_prefix):
-        raise ValueError("One or more of the arguments is None.")
+        raise ValueError("One or more arguments is not specified.")
 
     if not os.path.exists(dataset_base_dir):
         raise ValueError("Dataset path does not exist")
@@ -266,7 +305,7 @@ def make_tfrecs(
         synpath = synset_filepath
 
     images, labels, synsets = _get_files(dataset_base_dir, synpath, 
-        shuffle = shuffle)
+        shuffle = shuffle, val = val)
 
     print('Total images: ',len(images))
 

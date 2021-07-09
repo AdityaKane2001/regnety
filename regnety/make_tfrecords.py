@@ -11,6 +11,7 @@ def main():
     parser.add_argument("-bs", "--batch_size", type=int, default=1024)
     parser.add_argument("-f", "--log_freq",type=int, default=50)
     parser.add_argument("-s", "--shuffle", action='store_true')
+    parser.add_argument("-v", "--validation_set",action='store_true')
 
     args = parser.parse_args()
     make_tfrecs(
@@ -20,7 +21,8 @@ def main():
         synset_filepath=args.synset_filepath,
         batch_size = args.batch_size,
         logging_frequency = args.log_freq,
-        shuffle = args.shuffle
+        shuffle = args.shuffle,
+        val = args.validation_set
     )
 
 if __name__=='__main__':

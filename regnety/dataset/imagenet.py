@@ -32,6 +32,8 @@ class ImageNet:
     a callable object. That callable must take exactly two arguments: `image` and `target`
     and must return two values corresponding to the same. 
 
+    If `augment_fn` argument is None, then the images woll be center cropped to 224x224.
+
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
         batch_size: batch_size for the Dataset
@@ -55,9 +57,14 @@ class ImageNet:
         if self.augment_fn == 'default':
             self.default_augment = True
             self.strength = 5
-        else:
+        elif self.augment_fn == None:
             self.default_augment = False
             self.strength = -1
+        else:
+            self.default_augment = False
+            self.val_augment = True
+            self.strength = -1
+        
         
         self.tfrecs_filepath = tfrecs_filepath
         self.batch_size = batch_size
@@ -199,7 +206,8 @@ class ImageNet:
         """
 
         cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
-        return cropped, target        
+        return cropped, target
+       
 
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
@@ -239,6 +247,9 @@ class ImageNet:
                 self.random_crop,
                 num_parallel_calls = AUTO
             )
+        
+        elif self.val_augment:
+            pass
         
         else:
             ds = ds.map(
