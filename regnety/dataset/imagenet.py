@@ -32,7 +32,7 @@ class ImageNet:
     a callable object. That callable must take exactly two arguments: `image` and `target`
     and must return two values corresponding to the same. 
 
-    If `augment_fn` argument is None, then the images woll be center cropped to 224x224.
+    If `augment_fn` argument is 'val', then the images woll be center cropped to 224x224.
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
@@ -56,13 +56,15 @@ class ImageNet:
 
         if self.augment_fn == 'default':
             self.default_augment = True
+            self.val_augment = False
             self.strength = 5
-        elif self.augment_fn == None:
+        elif self.augment_fn == 'val':
             self.default_augment = False
+            self.val_augment = True
             self.strength = -1
         else:
             self.default_augment = False
-            self.val_augment = True
+            self.val_augment = False
             self.strength = -1
         
         
@@ -129,20 +131,6 @@ class ImageNet:
         return ds
 
   
-    def _one_hot_encode_example(self, example: dict) -> tuple:
-        """Takes an example having keys 'image' and 'label' and returns example
-        with keys 'image' and 'target'. 'target' is one hot encoded.
-
-        Args:
-            example: an example dict having keys 'image' and 'label'.
-
-        Returns:
-            Tuple having structure (image_tensor, targets_tensor).
-        """
-        return (example["image"], tf.one_hot(example["label"], self.num_classes))
-
-
-
     def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Performs color jitter on the batch. It performs random brightness, hue, saturation, 
@@ -207,7 +195,35 @@ class ImageNet:
 
         cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
         return cropped, target
-       
+    
+    def center_crop_224(self,  image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Center crops a given batch of images to (320, 320) and resizes them to 
+        (224, 224)
+
+        Args: 
+            image: Batch of images to perform center crop on.
+            target: Target tensor.
+
+        Returns:
+            Center cropped example with batch of images and targets with same dimensions.
+        """
+        aug_images = tf.image.resize(image, (320, 320))
+        aug_images = tf.image.central_crop(aug_images, 320./224.)
+        return aug_images, target
+
+
+    def _one_hot_encode_example(self, example: dict) -> tuple:
+        """Takes an example having keys 'image' and 'label' and returns example
+        with keys 'image' and 'target'. 'target' is one hot encoded.
+
+        Args:
+            example: an example dict having keys 'image' and 'label'.
+
+        Returns:
+            Tuple having structure (image_tensor, targets_tensor).
+        """
+        return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
@@ -249,7 +265,10 @@ class ImageNet:
             )
         
         elif self.val_augment:
-            pass
+            ds = ds.map(
+                self.center_crop_224,
+                num_parallel_calls = AUTO
+            )
         
         else:
             ds = ds.map(

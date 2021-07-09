@@ -80,9 +80,11 @@ def _get_validation_info(
     with open(_get_default_validation_labels_path(),'r') as f:
         all_lines = f.readlines()
         all_labels_int = list(map(
-            lambda line: int(line.split()[1].strip('\n'))
-        ), all_lines)
-    labels_dict = _get_synset_labels(synset_filepath)
+            lambda line: int(line.split()[1].strip('\n')),
+        all_lines) )
+    with open(synset_filepath, "r") as f:
+        labels_dict = json.load(f)
+    print(labels_dict)
     all_synsets = [labels_dict[str(i)]['id'] for i in all_labels_int]
 
     return all_images, all_labels_int, all_synsets
