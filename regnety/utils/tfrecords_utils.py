@@ -1,13 +1,17 @@
 """Script to make and save TFRecords from ImageNet files"""
 
+import apache_beam as beam
 import tensorflow as tf
 import os
 import random
 import json
 import math
 
-from .image_utils import *
+from regnety.regnety.utils.image_utils import *
+from regnety.regnety.utils.beam_utils import *
 from typing import Tuple, List
+from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import SetupOptions
 
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
@@ -331,3 +335,40 @@ def make_tfrecs(
             chunk_files, chunk_synsets, chunk_labels, output_filepath
         )
     print("All shards written successfully!")
+
+
+def make_tfrecs_beam(
+   dataset_base_dir: str = '',
+    output_dir: str = '',
+    file_prefix: str = '',
+    synset_filepath: str = '',
+    batch_size: int = 1024,
+    logging_frequency: int = 1,
+    shuffle: bool = True,
+    val: bool = False 
+):
+
+    if '' in (dataset_base_dir, output_dir, file_prefix):
+        raise ValueError("One or more arguments is not specified.")
+
+    if not os.path.exists(dataset_base_dir):
+        raise ValueError("Dataset path does not exist")
+    
+    if not os.path.exists(output_dir):
+        raise ValueError("Output directory does not exist")
+    
+    if synset_filepath is '':
+        synpath = _get_default_synset_path()
+    else:
+        synpath = synset_filepath
+
+    images, labels, synsets = _get_files(dataset_base_dir, synpath, 
+        shuffle = shuffle, val = val)
+
+    print('Total images: ',len(images))
+
+    num_shards = int(math.ceil(len(images) / batch_size))
+
+    
+
+
