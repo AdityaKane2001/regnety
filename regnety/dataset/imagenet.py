@@ -54,6 +54,12 @@ class ImageNet:
         if (tfrecs_filepath is None) or  (tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
 
+        self.tfrecs_filepath = tfrecs_filepath
+        self.batch_size = batch_size
+        self.image_size = image_size
+        self.augment_fn = augment_fn
+        self.num_classes = num_classes
+        
         if self.augment_fn == 'default':
             self.default_augment = True
             self.val_augment = False
@@ -68,11 +74,7 @@ class ImageNet:
             self.strength = -1
         
         
-        self.tfrecs_filepath = tfrecs_filepath
-        self.batch_size = batch_size
-        self.image_size = image_size
-        self.augment_fn = augment_fn
-        self.num_classes = num_classes
+        
 
     
     def decode_example(self, example_: tf.Tensor) -> dict:

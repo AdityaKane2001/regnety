@@ -10,6 +10,7 @@ import math
 from regnety.regnety.utils.image_utils import *
 from regnety.regnety.utils.beam_utils import *
 from typing import Tuple, List
+from collections import namedtuple 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
@@ -173,7 +174,7 @@ def _make_image(filepath: str) -> Tuple[str, int, int]:
 
     assert len(image_tensor.shape) == 3
 
-    return image_str, height, width
+    return image_str, 512, 512
 
 
 def _make_example(
@@ -370,5 +371,52 @@ def make_tfrecs_beam(
     num_shards = int(math.ceil(len(images) / batch_size))
 
     
+    
+    final_list = [
+        (images[i], labels[i], synsets[i]) for i in range(len(images))
+    ]
+    args_ = {
+        'jobname' : 'Make TFRecords',
+        'runner' : 'DirectRunner',
+        'num_shards' : num_shards,
+        'prefix': file_prefix,
+        'output_dir': output_dir,
+        'file_name_suffix': '.tfrecord'
+    }
+    options = beam.options.pipeline_options.PipelineOptions(**args_)
+    args = namedtuple("options", args_.keys())(*args_.values())
+
+
+    #raw_collection = create_collection(images, labels, synsets)
+    
+    
+
+    args_ = {
+        'jobname' : 'Make TFRecords',
+        'runner' : 'DirectRunner',
+        'num_shards' : num_shards,
+        'prefix': file_prefix,
+        'output_dir': output_dir,
+        'file_name_suffix': '.tfrecord'
+    }
+    options = beam.options.pipeline_options.PipelineOptions(**args_)
+    args = namedtuple("options", args_.keys())(*args_.values())
+
+    make_img_dofunc = MakeImageDoFn()
+    make_example_dofunc = MakeExampleDoFn()
+
+    write_to_tf_record = beam.io.tfrecordio.WriteToTFRecord(
+      file_path_prefix=args.output_dir,
+      num_shards=args.num_shards,
+      file_name_suffix = args.file_name_suffix)
+
+    with beam.Pipeline(args.runner, options=options) as pipeline:
+        _ = (
+            pipeline
+            | 'Make a PCollection' >> beam.Create(final_list)
+            # | 'Debug' >> beam.ParDo(print)
+            | 'Get image data' >> beam.FlatMap(make_img_dofunc)
+            | 'Write to TFRecords files' >> write_to_tf_record
+        )
 
 

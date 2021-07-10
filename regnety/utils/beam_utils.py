@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-
+from regnety.regnety.utils.image_utils import *
 
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
@@ -42,10 +42,9 @@ def create_collection(list1, list2, list3):
 class MakeImageDoFn(beam.DoFn):
     def process(
         self, 
-        filepath,
-        labels_int,
-        synset
+        info_tuple
     ):
+        filepath, label, synset = info_tuple
         image_str = tf.io.read_file(filepath)
 
         if is_png(filepath):
@@ -66,36 +65,25 @@ class MakeImageDoFn(beam.DoFn):
 
         assert len(image_tensor.shape) == 3
 
-        return image_str, height, width, filepath, label, synset
-
-class MakeExampleDoFn(beam.DoFn):
-    def process(self,
-        image_str,
-        height,
-        width, 
-        filepath, 
-        label, 
-        synset
-    ):
         try:
-        example = tf.train.Example(
-            features=tf.train.Features(
-                feature={
-                    "image": _bytes_feature(image_str),
-                    "height": _int64_feature(height),
-                    "width": _int64_feature(width),
-                    "filename": _bytes_feature(
-                        bytes(os.path.basename(filepath)).encode("utf8")
-                    ),
-                    "label": _int64_feature(label),
-                    "synset": _bytes_feature(bytes(synset).encode("utf8")),
-                }
-            )
-        )
-        except TypeError:
-            example = tf.train.Example(
+            return  tf.train.Example(
                 features=tf.train.Features(
-                    feature={
+                    feature = {
+                        "image": _bytes_feature(image_str),
+                        "height": _int64_feature(height),
+                        "width": _int64_feature(width),
+                        "filename": _bytes_feature(
+                            bytes(os.path.basename(filepath)).encode("utf8")
+                        ),
+                        "label": _int64_feature(label),
+                        "synset": _bytes_feature(bytes(synset).encode("utf8")),
+                    }
+                )
+            )
+        except:
+            return tf.train.Example(
+                features=tf.train.Features(
+                    feature = {
                         "image": _bytes_feature(image_str),
                         "height": _int64_feature(height),
                         "width": _int64_feature(width),
@@ -107,4 +95,17 @@ class MakeExampleDoFn(beam.DoFn):
                     }
                 )
             )
-        return example
+    
+    def __call__(self, *args):
+        self.process(*args)
+
+class MakeExampleDoFn(beam.DoFn):
+    def process(self,
+        example
+    ):
+        
+        return example.SerializeToString()
+    
+    def __call__(self, *args):
+        self.process(*args)
+
