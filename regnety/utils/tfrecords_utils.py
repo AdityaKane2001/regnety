@@ -404,6 +404,10 @@ def make_tfrecs_beam(
 
     make_img_dofunc = MakeImageDoFn()
     make_example_dofunc = MakeExampleDoFn()
+    batch_examples_transform = beam.transforms.util.BatchElements(
+        min_batch_size=batch_size, max_batch_size=batch_size,
+    )
+
 
     write_to_tf_record = beam.io.tfrecordio.WriteToTFRecord(
       file_path_prefix=args.output_dir,
@@ -414,8 +418,10 @@ def make_tfrecs_beam(
         _ = (
             pipeline
             | 'Make a PCollection' >> beam.Create(final_list)
-            # | 'Debug' >> beam.ParDo(print)
-            | 'Get image data' >> beam.FlatMap(make_img_dofunc)
+            | "Batch elements" >> batch_examples_transform            
+            | 'Get image data' >> beam.ParDo(make_img_dofunc)
+            # | 'Serialize' >> beam.FlatMap(make_example_dofunc)
+           # | 'Debug' >> beam.ParDo(print)
             | 'Write to TFRecords files' >> write_to_tf_record
         )
 
