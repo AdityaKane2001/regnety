@@ -3,6 +3,8 @@ import tensorflow as tf
 from regnety.regnety.config import get_model_config, ALLOWED_FLOPS
 from regnety.regnety.models.blocks import PreStem, Stem, Stage, Head
 
+from typing import List, Tuple, Union
+
 class RegNetY(tf.keras.Model):
     """
     RegNetY model class. Subclassed from tf.keras.Model. Instantiates a randomly
@@ -10,15 +12,34 @@ class RegNetY(tf.keras.Model):
     argument to model.
 
     Args:
-        flops: Flops of the model eg. "400MF"
+        flops: Flops of the model eg. "400MF" (Processing one image requires 
+            400 million floating point operations (multiplication, addition))
+        input_shape: A python list or tuple denoting the shape input. Please omit the 
+            batch dimension. eg. (256, 256, 3). Must be greater than or equal to 224.
     """
 
-    def __init__(self, flops:str = ""):
+    def __init__(self, flops:str = "", input_shape: Union[List, Tuple] = None ):
         super(RegNetY, self).__init__()
 
         if flops not in ALLOWED_FLOPS:
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
         
+        if input_shape is None:
+            self.input_shape = (224,224,3)
+        else: 
+            self.input_shape = input_shape
+        
+        if any([i<224 for i in self.input_shape[:-1]]):
+            raise ValueError('All non-channel dimensions in `input_shape`'
+                             ' must be greater than or equal to 224.')
+
+        try:
+            assert len(self.input_shape) == 3
+        except:
+            raise ValueError('Input shape is invalid. Please enter input shape '
+                             ' as (height, width, 3)')
+
+
         self.flops = flops
         self.config = get_model_config(self.flops)
         self.model = self._get_model_with_config(self.config)
@@ -40,7 +61,7 @@ class RegNetY(tf.keras.Model):
          
         """
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_shape = (224,224,3)))
+        model.add(tf.keras.layers.InputLayer(input_shape=self.input_shape))
         model.add(PreStem())
         model.add(Stem())
 

@@ -10,7 +10,8 @@ class RegNetYConfig:
 
     Args:
         name: Name of the model eg. "RegNetY200MF"
-        flops: Flops of the model eg. "400MF"
+        flops: Flops of the model eg. "400MF" (Processing one image requires 
+            400 million floating point operations (multiplication, addition))
         depths: List of depths for every stage
         widths: List of  widths (number of channels) after every stage
         group_width: Integer denoting groups in every convolution layer
