@@ -34,6 +34,21 @@ def _int64_feature(value):
 
 
 # make_tfrecs -> for(_make_single_tfrecord)-> make_dataset -> _make_example
+
+
+def _get_default_synset_path() -> str:
+    self_path = __file__
+    path_segments = self_path.split('/')
+    regnety_path = '/'.join(path_segments[:-2])
+    return os.path.join(regnety_path, 'config', 'imagenet_synset_to_human.json')
+
+
+def _get_default_validation_labels_path() -> str:
+    self_path = __file__
+    path_segments = self_path.split('/')
+    regnety_path = '/'.join(path_segments[:-2])
+    return os.path.join(regnety_path, 'config', 'valid_labels.txt')
+
 def _get_synset_labels(filepath: str) -> dict:
     """
     Gets synsets from json file in a dict
@@ -57,20 +72,6 @@ def _get_synset_labels(filepath: str) -> dict:
         )
     return labels_dict
 
-def _get_default_synset_path() -> str:
-    self_path = __file__
-    path_segments = self_path.split('/')
-    regnety_path = '/'.join(path_segments[:-2])
-    return os.path.join(regnety_path, 'config', 'imagenet_synset_to_human.json')
-
-
-def _get_default_validation_labels_path() -> str:
-    self_path = __file__
-    path_segments = self_path.split('/')
-    regnety_path = '/'.join(path_segments[:-2])
-    return os.path.join(regnety_path, 'config', 'valid_labels.txt')
-
-
 
 def _get_validation_info(
     data_dir: str,
@@ -80,6 +81,20 @@ def _get_validation_info(
     List[int],
     List[str]
 ]:
+    """
+    Returns lists of all files, their integer labels and their synsets. 
+    Assumes directory structure like in ImageNet validation images.
+    Args:
+        data_dir: directory containing ImageNet validation-style directory
+            structure (directly images inside)
+        synset_filepath: path to synsets json file
+        shuffle: True if data needs to be shuffled
+
+    Returns:
+        all_images: paths to all image files
+        all_labels: integer labels corresponding to images in all_images list
+        all_synsets: synset strings corresponding to images in all_images list
+    """
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*.JPEG"))
     all_images.sort()
     with open(_get_default_validation_labels_path(),'r') as f:
@@ -105,10 +120,12 @@ def _get_files(
         List[str]
     ]:
     """
-    Returns lists of all files, their integer labels and their synsets
+    Returns lists of all files, their integer labels and their synsets. 
+    Assumes directory structure like in ImageNet training images.
     Args:
-        data_dir: directory containing ImageNet-style directory structure
-            (synsets ID as directory names, images inside)
+        data_dir: directory containing ImageNet train-style directory
+            structure (synsets ID as directory names, images inside) 
+            if val = False 
         synset_filepath: path to synsets json file
         shuffle: True if data needs to be shuffled
 
@@ -163,7 +180,6 @@ def _make_image(filepath: str) -> Tuple[str, int, int]:
         image_str = cmyk_to_rgb(image_str)
 
     image_tensor = tf.io.decode_jpeg(image_str)
-    height, width = image_tensor.shape[0], image_tensor.shape[1]
 
     if not is_rgb(image_tensor):
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
@@ -277,8 +293,8 @@ def make_tfrecs(
     val: bool = False
 ):
     """
-    Only public function of the module. Makes TFReocrds and stores them in
-    output_dir. Each TFRecord except last one has exactly one batch of data.
+    Makes TFRecords and stores them in output_dir. Each
+    TFRecord except last one has exactly one batch of data.
 
     Args:
         dataset_base_dir: directory containing ImageNet-style directory
@@ -302,9 +318,6 @@ def make_tfrecs(
 
     if not os.path.exists(dataset_base_dir):
         raise ValueError("Dataset path does not exist")
-    
-    if not os.path.exists(output_dir):
-        raise ValueError("Output directory does not exist")
     
     if synset_filepath is '':
         synpath = _get_default_synset_path()
@@ -346,10 +359,27 @@ def make_tfrecs_beam(
     file_prefix: str = '',
     synset_filepath: str = '',
     batch_size: int = 1024,
-    logging_frequency: int = 1,
     shuffle: bool = True,
     val: bool = False 
 ):
+    """
+    Makes TFRecords and stores them in output_dir using Apache Beam.
+    Each TFRecord except last one has exactly one batch of data.
+
+    Args:
+        dataset_base_dir: directory containing ImageNet-style directory
+            structure (synsets ID as directory names, images inside)
+            eg.: home/imagenet/train
+        output_dir: Directory to store TFRecords, eg: home/imagenet_tfrecs
+        file_prefix: prefix to be added tfrecords files
+            eg.: if file_prefix = 'train' then 
+            all files look like: `train_0000_of_<num_shards>`
+        synset_filepath: path to synsets json file
+        batch_size: batch size of dataset. Each TFRecords, except the last one
+            will contain these many examples.
+        shuffle: True if dataset needs to be shuffled
+    Returns None
+    """
 
     if '' in (dataset_base_dir, output_dir, file_prefix):
         raise ValueError("One or more arguments is not specified.")
@@ -357,8 +387,6 @@ def make_tfrecs_beam(
     if not os.path.exists(dataset_base_dir):
         raise ValueError("Dataset path does not exist")
     
-    if not os.path.exists(output_dir):
-        raise ValueError("Output directory does not exist")
     
     if synset_filepath is '':
         synpath = _get_default_synset_path()
@@ -371,8 +399,6 @@ def make_tfrecs_beam(
     print('Total images: ',len(images))
 
     num_shards = int(math.ceil(len(images) / batch_size))
-
-    
     
     final_list = [
         (images[i], labels[i], synsets[i]) for i in range(len(images))
@@ -385,13 +411,9 @@ def make_tfrecs_beam(
         'output_dir': output_dir,
         'file_name_suffix': '.tfrecord'
     }
+
     options = beam.options.pipeline_options.PipelineOptions(**args_)
     args = namedtuple("options", args_.keys())(*args_.values())
-
-
-    #raw_collection = create_collection(images, labels, synsets)
-    
-    
 
     args_ = {
         'jobname' : 'Make TFRecords',
@@ -420,10 +442,9 @@ def make_tfrecs_beam(
         _ = (
             pipeline
             | 'Make a PCollection' >> beam.Create(final_list)
-            | "Batch elements" >> batch_examples_transform            
+            | 'Batch elements' >> batch_examples_transform            
             | 'Get image data' >> beam.ParDo(make_img_dofunc)
-            # | 'Serialize' >> beam.FlatMap(make_example_dofunc)
-           # | 'Debug' >> beam.ParDo(print)
+            | 'Serialize data' >> beam.ParDo(make_example_dofunc)
             | 'Write to TFRecords files' >> write_to_tf_record
         )
 
