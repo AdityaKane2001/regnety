@@ -32,7 +32,7 @@ class ImageNet:
     a callable object. That callable must take exactly two arguments: `image` and `target`
     and must return two values corresponding to the same. 
 
-    If `augment_fn` argument is 'val', then the images woll be center cropped to 224x224.
+    If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files
@@ -60,11 +60,11 @@ class ImageNet:
         self.augment_fn = augment_fn
         self.num_classes = num_classes
         
-        if self.augment_fn == 'default':
+        if self.augment_fn == "default":
             self.default_augment = True
             self.val_augment = False
             self.strength = 5
-        elif self.augment_fn == 'val':
+        elif self.augment_fn == "val":
             self.default_augment = False
             self.val_augment = True
             self.strength = -1
@@ -91,8 +91,8 @@ class ImageNet:
         example =  tf.io.parse_example(example_, _TFRECS_FORMAT)
         image = tf.reshape(tf.io.decode_jpeg(
             example["image"]), (self.image_size, self.image_size, 3))
-        height = example['height']
-        width = example['width']
+        height = example["height"]
+        width = example["width"]
         filename = example["filename"]
         label = example["label"]
         synset = example["synset"]
@@ -125,7 +125,7 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        ds = ds.cache('tf_cache')
+        ds = ds.cache("tf_cache")
        
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)

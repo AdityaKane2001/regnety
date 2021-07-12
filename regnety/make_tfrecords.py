@@ -39,5 +39,5 @@ def main():
             val = args.validation_set
         )
 
-if __name__=='__main__':
+if __name__=="__main__":
     main()
