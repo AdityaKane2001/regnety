@@ -311,6 +311,8 @@ def make_tfrecs(
     else:
         synpath = synset_filepath
 
+    print("Synsets filepath: ", synpath)
+
     images, labels, synsets = _get_files(dataset_base_dir, synpath, 
         shuffle = shuffle, val = val)
 
