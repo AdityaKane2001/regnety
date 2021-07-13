@@ -6,7 +6,8 @@ from regnety.regnety.models.blocks import PreStem, Stem, Stage, Head
 from typing import List, Tuple, Union
 
 
-def _get_model_with_config(config, userdef_input_shape):
+def _get_model_with_config(config, userdef_input_shapeflops: str = "", 
+    userdef_input_shape: Union[List, Tuple] = (224,224,3)):
     """
     Makes a tf.keras.Sequential model using the given config.
         
