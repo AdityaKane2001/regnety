@@ -39,15 +39,6 @@ def _get_model_with_config(config, userdef_input_shape):
 
 
 def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
-    """
-    Instantiates a RegNetY instance based on flops and input_shape furnished by user.
-   
-    Args:
-        flops: Flops of the model eg. "400MF" (Processing one image requires 
-            400 million floating point operations (multiplication, addition))
-        input_shape: A python list or tuple denoting the shape input. Please omit the 
-            batch dimension. eg. (256, 256, 3). Must be greater than or equal to 224.
-    """
     if flops not in ALLOWED_FLOPS:
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
 
@@ -70,4 +61,56 @@ def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
     flops = flops
     config = get_model_config(flops)
     model = _get_model_with_config(config)
-    return model
+
+
+class RegNetY(tf.keras.Model):
+    """
+    RegNetY model class. Subclassed from tf.keras.Model. Instantiates a randomly
+    initialised model (to be changed after training). User must provide `flops`
+    argument to model.
+
+    Args:
+        flops: Flops of the model eg. "400MF" (Processing one image requires 
+            400 million floating point operations (multiplication, addition))
+        input_shape: A python list or tuple denoting the shape input. Please omit the 
+            batch dimension. eg. (256, 256, 3). Must be greater than or equal to 224.
+    """
+
+    def __init__(self, flops:str = "", input_shape: Union[List, Tuple] = None ):
+        super(RegNetY, self).__init__()
+
+        if flops not in ALLOWED_FLOPS:
+            raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
+        
+        if input_shape is None:
+            self.userdef_input_shape = (224,224,3)
+        else: 
+            self.userdef_input_shape = input_shape
+        
+        if any([i < 224 for i in self.userdef_input_shape[:-1]]):
+            raise ValueError('All non-channel dimensions in `input_shape`'
+                             ' must be greater than or equal to 224.')
+
+        try:
+            assert len(self.userdef_input_shape) == 3
+        except:
+            raise ValueError('Input shape is invalid. Please enter input shape '
+                             ' as (height, width, 3)')
+
+
+        self.flops = flops
+        self.config = get_model_config(self.flops)
+        self.model = self._get_model_with_config(self.config)
+
+    def build(self, input_shape):
+        self.model.build(input_shape)
+
+    def call(self, inputs):
+        self.model.call(inputs)
+    
+    def get_model(self):
+        """Returns sequential model constructed in this class"""
+        return self.model
+    
+
+
