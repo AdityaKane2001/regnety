@@ -39,7 +39,20 @@ def _get_model_with_config(config,
     return model
 
 
-def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
+def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None) -> tf.keras.Sequential:
+    """
+    Instantiates a RegNetY instance based on flops and input_shape furnished by user.
+   
+    Args:
+        flops: Flops of the model eg. "400MF" (Processing one image requires 
+            400 million floating point operations (multiplication, addition))
+        input_shape: A python list or tuple denoting the shape input. Please omit the 
+            batch dimension. eg. (256, 256, 3). Must be greater than or equal to 224.
+    
+    Returns:
+        A tf.keras.Sequential with RegNetY architecture.
+    """
+
     if flops not in ALLOWED_FLOPS:
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
 
@@ -59,7 +72,6 @@ def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
                             ' as (height, width, 3)')
 
 
-    flops = flops
     config = get_model_config(flops)
     model = _get_model_with_config(config)
     return model
