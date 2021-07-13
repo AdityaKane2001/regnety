@@ -6,39 +6,6 @@ from regnety.regnety.models.blocks import PreStem, Stem, Stage, Head
 from typing import List, Tuple, Union
 
 
-def _get_model_with_config(config, userdef_input_shapeflops: str = "", 
-    userdef_input_shape: Union[List, Tuple] = (224,224,3)):
-    """
-    Makes a tf.keras.Sequential model using the given config.
-        
-    """
-    model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.InputLayer(input_shape=userdef_input_shape))
-    model.add(PreStem())
-    model.add(Stem())
-
-    in_channels = 32  # Output channels from Stem
-
-    for i in range(4):  # 4 stages
-        depth = config.depths[i]
-        out_channels = config.widths[i]
-        group_width = config.group_width
-
-        model.add(Stage(
-            depth,
-            group_width,
-            in_channels,
-            out_channels,
-            stage_num=i
-        ))
-
-        in_channels = out_channels
-
-    model.add(Head(config.num_classes))
-
-    return model
-
-
 def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
     if flops not in ALLOWED_FLOPS:
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
@@ -61,7 +28,7 @@ def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None):
 
     flops = flops
     config = get_model_config(flops)
-    model = _get_model_with_config(config)
+    self.model = self._get_model_with_config(config)
 
 
 class RegNetY(tf.keras.Model):
@@ -114,4 +81,34 @@ class RegNetY(tf.keras.Model):
         return self.model
     
 
+    def _get_model_with_config(self, config):
+        """
+        Makes a tf.keras.Sequential model using the given config.
+         
+        """
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.InputLayer(input_shape=self.userdef_input_shape))
+        model.add(PreStem())
+        model.add(Stem())
+
+        in_channels = 32 # Output channels from Stem
+
+        for i in range(4):  # 4 stages
+            depth = config.depths[i]
+            out_channels = config.widths[i]
+            group_width = config.group_width
+
+            model.add(Stage(
+                depth,
+                group_width,
+                in_channels,
+                out_channels,
+                stage_num = i
+            ))
+            
+            in_channels = out_channels
+        
+        model.add(Head(config.num_classes))
+
+        return model
 
