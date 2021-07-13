@@ -25,16 +25,16 @@ class RegNetY(tf.keras.Model):
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
         
         if input_shape is None:
-            self.input_shape = (224,224,3)
+            self.userdef_input_shape = (224,224,3)
         else: 
-            self.input_shape = input_shape
+            self.userdef_input_shape = input_shape
         
-        if any([i<224 for i in self.input_shape[:-1]]):
+        if any([i < 224 for i in self.userdef_input_shape[:-1]]):
             raise ValueError('All non-channel dimensions in `input_shape`'
                              ' must be greater than or equal to 224.')
 
         try:
-            assert len(self.input_shape) == 3
+            assert len(self.userdef_input_shape) == 3
         except:
             raise ValueError('Input shape is invalid. Please enter input shape '
                              ' as (height, width, 3)')
@@ -61,7 +61,7 @@ class RegNetY(tf.keras.Model):
          
         """
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_shape=self.input_shape))
+        model.add(tf.keras.layers.InputLayer(input_shape=self.userdef_input_shape))
         model.add(PreStem())
         model.add(Stem())
 
@@ -86,5 +86,3 @@ class RegNetY(tf.keras.Model):
 
         return model
 
-model = RegNetY('200mf')
-print([layer.name for layer in model.get_layer('sequential').layers])
