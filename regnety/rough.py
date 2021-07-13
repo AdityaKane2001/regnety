@@ -1,7 +1,6 @@
 from regnety.regnety.models import RegNetY
 import tensorflow as tf
 import regnety.regnety.utils.model_utils as mutil
-from keras_flops import get_flops
 
 
 tf.keras.backend.clear_session()

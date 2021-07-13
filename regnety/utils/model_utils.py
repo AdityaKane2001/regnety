@@ -5,7 +5,7 @@ from tensorflow.python.framework.convert_to_constants import (
 )
 
 def plot_model(
-    regnety_instance: RegNetY,
+    model,
     imgpath: str = "model.png" ):
 
     """
@@ -17,7 +17,7 @@ def plot_model(
     Returns: None
     """
     tf.keras.utils.plot_model(
-                regnety_instance.get_model(),
+                model,
                 to_file=imgpath,
                 show_shapes=True,
                 show_dtype=True,
@@ -38,7 +38,7 @@ def get_layer_names_dict(regnety_instance:RegNetY):
     pass
 
 
-def get_flops(regnety_instance: RegNetY):
+def get_flops(model, input_shape = (1, 224,224,3)):
     """
     Calculate FLOPS for tf.keras.Model or tf.keras.Sequential .
     Ignore operations used in only training mode such as Initialization.
@@ -50,13 +50,13 @@ def get_flops(regnety_instance: RegNetY):
     Returns:
         Tuple containing total float ops and paramenters
     """
-    model = regnety_instance.get_model()
+    
     if not isinstance(model, (tf.keras.Sequential, tf.keras.Model)):
         raise KeyError(
             "model arguments must be tf.keras.Model or tf.keras.Sequential instanse"
         )
     inputs = [
-        tf.TensorSpec(regnety_instance.userdef_input_shape,tf.float32) 
+        tf.TensorSpec(input_shape,tf.float32) 
     ]
     real_model = tf.function(model).get_concrete_function(inputs)
     frozen_func, _ = convert_variables_to_constants_v2_as_graph(real_model)
