@@ -26,16 +26,8 @@ ds = imgnet.make_dataset()
 ds = ds.prefetch(tf.data.AUTOTUNE)
 k=0
 for i in ds:
-    im = i[0][0].numpy() / 255.
-    k+=1
-    img = plt.imshow(im)
-    img.set_cmap('hot')
-    plt.axis('off')
-    plt.savefig(os.path.join('/content','augmented_'+str(k)+'.jpeg'), bbox_inches='tight')
+    print('Shapes:',i[0], i[1])
     break
-
-    
-
 
 # model = tf.keras.Sequential(
 #     [
