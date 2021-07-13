@@ -49,6 +49,7 @@ class ImageNet:
         image_size: int = 512,
         augment_fn: Union[str, Callable]  = "default",
         num_classes: int = 1000,
+        scale_to_unit: bool = True
     ):
 
         if (tfrecs_filepath is None) or  (tfrecs_filepath == []):
@@ -59,6 +60,7 @@ class ImageNet:
         self.image_size = image_size
         self.augment_fn = augment_fn
         self.num_classes = num_classes
+        self.scale_to_unit = scale_to_unit
         
         if self.augment_fn == "default":
             self.default_augment = True
@@ -198,7 +200,7 @@ class ImageNet:
         cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
         return cropped, target
     
-    def center_crop_224(self,  image: tf.Tensor, target: tf.Tensor) -> tuple:
+    def center_crop_224(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Center crops a given batch of images to (320, 320) and resizes them to 
         (224, 224)
@@ -211,9 +213,24 @@ class ImageNet:
             Center cropped example with batch of images and targets with same dimensions.
         """
         aug_images = tf.image.resize(image, (320, 320))
-        aug_images = tf.image.central_crop(aug_images, 320./224.)
+        aug_images = tf.image.central_crop(aug_images, 224./320.)
         return aug_images, target
 
+    def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Divides the pixel values of the image by 255. 
+
+        Args: 
+            image: Batch of images to perform center crop on.
+            target: Target tensor.
+
+        Returns:
+            Scaled example with batch of images and targets with same dimensions.
+        """
+
+        aug_images = tf.cast(image, tf.float32)
+        aug_images = aug_images / 255.
+        return aug_images, target
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
         """Takes an example having keys 'image' and 'label' and returns example
@@ -278,5 +295,10 @@ class ImageNet:
                 num_parallel_calls = AUTO
             )
 
+        if self.scale_to_unit:
+            ds = ds.map(
+                self._scale_to_unit,
+                num_parallel_calls = AUTO
+            )
 
         return ds
