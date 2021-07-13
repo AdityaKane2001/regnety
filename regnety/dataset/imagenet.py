@@ -127,7 +127,7 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        # ds = ds.cache("tf_cache")
+        ds = ds.cache("tf_cache")
        
         ds = ds.repeat()
         ds = ds.batch(self.batch_size)
