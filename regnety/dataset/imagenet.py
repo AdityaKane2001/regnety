@@ -128,13 +128,30 @@ class ImageNet:
         )
 
         ds = ds.cache("tf_cache")
-       
-        ds = ds.repeat()
-        ds = ds.batch(self.batch_size)
+        
+        ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
         return ds
 
-  
+    def _split_ds(self, ds: Type[tf.data.Dataset]) -> Type[tf.data.Dataset]:
+        """
+        Splits the dataset into training and validation datasets,
+
+        Args:
+            ds: A tf.data.Dataset
+
+        Returns:
+            Two datasets, one with 99% examples and the other with 1%.
+        """
+
+        one_percent = int(len(self.tfrecs_filepath) / 100)
+        val_ds = ds.take(one_percent)
+        train_ds = ds.skip(one_percent)
+
+        return train_ds, val_ds
+
+        
+
     def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Performs color jitter on the batch. It performs random brightness, hue, saturation, 
@@ -214,6 +231,7 @@ class ImageNet:
         """
         aug_images = tf.image.resize(image, (320, 320))
         aug_images = tf.image.central_crop(aug_images, 224./320.)
+        aug_images = tf.image.resize(image, (320, 320))
         return aug_images, target
 
     def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -262,9 +280,16 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
         
+        ds, val_ds = self._split_ds(ds)
+
         ds = ds.map(
             self._one_hot_encode_example,
             num_parallel_calls = AUTO
+        )
+
+        val_ds = val_ds.map(
+            self._one_hot_encode_example,
+            num_parallel_calls=AUTO
         )
 
         if self.default_augment:
@@ -283,22 +308,27 @@ class ImageNet:
                 num_parallel_calls = AUTO
             )
         
-        elif self.val_augment:
+        else:
             ds = ds.map(
+                self.augment_fn,
+                num_parallel_calls=AUTO
+            )
+
+        val_ds = val_ds.map(
                 self.center_crop_224,
                 num_parallel_calls = AUTO
             )
         
-        else:
-            ds = ds.map(
-                self.augment_fn,
-                num_parallel_calls = AUTO
-            )
-
         if self.scale_to_unit:
             ds = ds.map(
                 self._scale_to_unit,
                 num_parallel_calls = AUTO
             )
 
-        return ds
+            val_ds = val_ds.map(
+                self._scale_to_unit,
+                num_parallel_calls=AUTO
+            )
+
+
+        return ds, val_ds
