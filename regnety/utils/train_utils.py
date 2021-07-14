@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import math
 import os
+import regnety
 
 PI = math.pi
 
