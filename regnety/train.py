@@ -2,6 +2,7 @@ import tensorflow as tf
 import argparse
 import os
 import json
+import regnety
 
 from datetime import datetime
 from regnety.regnety.models.model import RegNetY
