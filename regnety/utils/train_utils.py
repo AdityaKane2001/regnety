@@ -13,7 +13,7 @@ def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
             weight_decay=cfg.weight_decay,
             learning_rate=cfg.base_lr,
             momentum=cfg.momentum,
-            nestrov=True
+            nesterov=True
         )
 
     elif cfg.optimizer == "adam":
