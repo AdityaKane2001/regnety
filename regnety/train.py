@@ -16,7 +16,7 @@ from regnety.regnety.config.config import (
 
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
-parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter")
+parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
 parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
 
 args = parser.parse_args()
