@@ -67,7 +67,7 @@ callbacks = tutil.get_callbacks(cfg)
 
 history = model.fit(
     train_ds,
-   	epochs=cfg.max_epochs,
+   	epochs=cfg.total_epochs,
    	validation_data=val_ds,
    	callbacks=callbacks
 )
