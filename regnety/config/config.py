@@ -44,7 +44,7 @@ class TrainConfig:
     Dataclass of training configuration for RegNetY
 
     Args:
-        optimizer_strategy: One of "sgd", "adam", "adamw"
+        optimizer: One of "sgd", "adam", "adamw"
         base_lr: Base learning rate for training
         warmup_epochs: Number of epochs used for warmup
         total_epochs: Number of training epochs
@@ -55,7 +55,7 @@ class TrainConfig:
         model_dir: Path to store model checkpoints
     """
 
-    optimizer_strategy: str
+    optimizer: str
     base_lr: float
     warmup_epochs: int
     total_epochs: int
