@@ -1,15 +1,18 @@
-from regnety.config.config import ALLOWED_FLOPS
 import tensorflow as tf
 import argparse
+import os
+import json
 
+from datetime import datetime
 from regnety.regnety.models.model import RegNetY
 from regnety.regnety.dataset.imagenet import ImageNet
+from regnety.regnety.utils import train_utils as tutil
 from regnety.regnety.config.config import (
     get_train_config,
     get_model_config,
     ALLOWED_FLOPS
 )
-from regnety.regnety.utils import train_utils as tutil
+
 
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
@@ -68,3 +71,9 @@ history = model.fit(
    	callbacks=callbacks
 )
 
+
+now = datetime.now()
+date_time = now.strftime("%m/%d/%Y_%H:%M")
+
+with open(os.path.join(cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
+    json.dump(history.history, f)
