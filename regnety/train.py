@@ -56,8 +56,13 @@ def make_model(flops, cfg):
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
-with strategy.scope():
+if strategy:
+    with strategy.scope():
+        model = make_model(flops, cfg)
+
+else:
     model = make_model(flops, cfg)
+
 
 train_ds, val_ds = ImageNet(
     tfrecs_filepath

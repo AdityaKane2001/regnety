@@ -93,7 +93,10 @@ def connect_to_tpu(tpu_address: str = None):
         print("REPLICAS: ", strategy.num_replicas_in_sync)
         return cluster_resolver, strategy
     else:
-        tpu = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
-        # instantiate a distribution strategy
-        tpu_strategy = tf.distribute.experimental.TPUStrategy(tpu)
-        return tpu, tpu_strategy
+        try:
+            tpu = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
+            # instantiate a distribution strategy
+            tpu_strategy = tf.distribute.experimental.TPUStrategy(tpu)
+            return tpu, tpu_strategy
+        except:
+            return None, None
