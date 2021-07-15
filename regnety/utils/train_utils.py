@@ -36,7 +36,7 @@ def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
 def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
     if cfg.lr_schedule == "half_cos":
         def half_cos_schedule(epoch, lr):
-            # Taken from pycls/pycls/core/optimizer.py, since not clear form paper.
+            # Taken from pycls/pycls/core/optimizer.py, since not clear from paper.
             if epoch < cfg.warmup_epochs:
                 new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
                     cfg.total_epochs)) * cfg.base_lr

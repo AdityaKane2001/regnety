@@ -65,7 +65,8 @@ else:
 
 
 train_ds, val_ds = ImageNet(
-    tfrecs_filepath
+    tfrecs_filepath,
+    batch_size=128
 ).make_dataset()
 
 callbacks = tutil.get_callbacks(cfg)
