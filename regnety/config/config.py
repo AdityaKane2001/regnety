@@ -47,6 +47,7 @@ class TrainConfig:
         optimizer: One of "sgd", "adam", "adamw"
         base_lr: Base learning rate for training
         warmup_epochs: Number of epochs used for warmup
+        warmup_factor: Gradual linear warmup factor
         total_epochs: Number of training epochs
         weight_decay: Weight decay to be used in optimizer
         momentum: Momentum to be used in optimizer
@@ -58,6 +59,7 @@ class TrainConfig:
     optimizer: str
     base_lr: float
     warmup_epochs: int
+    warmup_factor: float
     total_epochs: int
     weight_decay: float
     momentum: float
@@ -167,6 +169,7 @@ def get_train_config():
         optimizer="sgd",
         base_lr=0.1,
         warmup_epochs=5,
+        warmup_factor=0.1,
         total_epochs=100,
         weight_decay=5e-4,
         momentum=0.9,

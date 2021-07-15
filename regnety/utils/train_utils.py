@@ -39,13 +39,13 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
             # Taken from pycls/pycls/core/optimizer.py, since not clear form paper.
             if epoch < cfg.warmup_epochs:
                 new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
-                    cfg.max_epochs)) * cfg.base_lr
+                    cfg.total_epochs)) * cfg.base_lr
                 alpha = epoch / cfg.warmup_epochs
-                warmup_factor = cfg.earmup_factor * (1. - alpha) + alpha
+                warmup_factor = cfg.warmup_factor * (1. - alpha) + alpha
                 return new_lr * warmup_factor
             else:
                 new_lr = 0.5 * (1.0 +
-                    tf.math.cos(PI * epoch / cfg.max_epochs))
+                    tf.math.cos(PI * epoch / cfg.total_epochs))
                 return new_lr
 
         return half_cos_schedule
