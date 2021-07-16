@@ -18,7 +18,7 @@ from regnety.regnety.config.config import (
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
-parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
+parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for TFRecords")
 
 args = parser.parse_args()
 flops = args.flops
@@ -43,7 +43,7 @@ def make_model(flops, cfg):
     optim = tutil.get_optimizer(cfg)
     model = RegNetY(flops)
     model.compile(
-        loss='categorical_crossentropy',
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
         optimizer=optim,
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
@@ -66,7 +66,7 @@ else:
 
 train_ds, val_ds = ImageNet(
     tfrecs_filepath,
-    batch_size=128
+    batch_size=1024
 ).make_dataset()
 
 callbacks = tutil.get_callbacks(cfg)
@@ -75,7 +75,10 @@ history = model.fit(
     train_ds,
    	epochs=cfg.total_epochs,
    	validation_data=val_ds,
-   	callbacks=callbacks
+    callbacks = [
+        tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(cfg))
+    ]
+   	# callbacks=callbacks
 )
 
 
