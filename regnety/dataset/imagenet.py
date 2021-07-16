@@ -2,6 +2,7 @@ import math
 import tensorflow as tf
 import tensorflow_addons as tfa
 import os
+import time
 
 from typing import Union, Callable, Tuple, List, Type
 
@@ -127,7 +128,7 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        ds = ds.cache("tf_cache")
+        ds = ds.cache("gs://adityakane-train/cache/"+str(time.time()))
         
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
