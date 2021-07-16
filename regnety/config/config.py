@@ -167,7 +167,7 @@ def get_train_config():
 
     return TrainConfig(
         optimizer="sgd",
-        base_lr=0.1,
+        base_lr=0.8,
         warmup_epochs=5,
         warmup_factor=0.1,
         total_epochs=100,
