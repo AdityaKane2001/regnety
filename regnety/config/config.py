@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from dataclasses import dataclass
-from typing import List, Type
+from typing import List, Type, Union, Callable
 
 ALLOWED_FLOPS = ('200mf', '400mf', '600mf', '800mf')
 
@@ -66,6 +66,66 @@ class TrainConfig:
     lr_schedule: str
     log_dir: str
     model_dir: str
+
+
+@dataclass
+class PreprocessingConfig:
+    tfrecs_filepath: List[str]
+    batch_size: int
+    image_size: int
+    augment_fn: Union[str, Callable]
+    num_classes: int
+    percent_valid: int
+    cache_dir: str
+    color_jitter: bool
+    scale_to_unit: bool
+
+
+def get_preprocessing_config(
+    tfrecs_filepath: List[str] = None,
+    batch_size: int = 1024,
+    image_size: int = 512,
+    crop_size: int = 224,
+    resize_to_size: int = 320,
+    augment_fn: Union[str, Callable] = "default",
+    num_classes: int = 1000,
+    percent_valid: int = 1,
+    cache_dir: str = "gs://adityakane-train/cache/",
+    color_jitter: bool = False,
+    scale_to_unit: bool = True
+):
+
+    """
+    Getter function for preprocessing configuration.
+
+    Args:
+        tfrecs_filepath: list of filepaths of all TFRecords files.
+        batch_size: batch_size for the Dataset.
+        image_size: final image size of the images in the dataset.
+        augment_fn: function to apply to dataset after loading raw TFrecords.
+        num_classes: number of classes.
+        percent_valid: Percentage of training data to be used as validation data.
+        cache_dir: Directory to use for TF cache. 
+        color_jitter: If True, color_jitter augmentation is applied.
+        scale_to_unit: Whether the images should be scaled to [0,1].
+    
+    Returns:
+        A PreprocessingConfig dataclass instance with all attributes
+    
+    """
+    return PreprocessingConfig(
+        tfrecs_filepath=tfrecs_filepath,
+        batch_size=batch_size,
+        image_size=image_size,
+        crop_size=crop_size,
+        resize_to_size=resize_to_size,
+        augment_fn=augment_fn,
+        num_classes=num_classes,
+        percent_valid=percent_valid,
+        cache_dir=cache_dir,
+        color_jitter=color_jitter,
+        scale_to_unit=scale_to_unit
+    )
 
 
 def get_model_config(flops: str):
@@ -175,7 +235,8 @@ def get_train_config():
         momentum=0.9,
         lr_schedule="half_cos",
         log_dir="gs://adityakane-train/logs",
-        model_dir="gs://adityakane-train/models"
+        model_dir="gs://adityakane-train/models",
+        cache_dir="gs://adityakane-train/cache"
     )
 
 def get_custom_train_config(
@@ -188,7 +249,8 @@ def get_custom_train_config(
     momentum: float,
     lr_schedule: str,
     log_dir: str,
-    model_dir: str
+    model_dir: str,
+    cache_dir: str
 ):
     return TrainConfig(
         optimizer=optimizer,
@@ -200,5 +262,6 @@ def get_custom_train_config(
         momentum=momentum,
         lr_schedule=lr_schedule,
         log_dir=log_dir,
-        model_dir=model_dir
+        model_dir=model_dir,
+        cache_dir=cache_dir
     )

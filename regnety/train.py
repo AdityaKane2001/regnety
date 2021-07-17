@@ -1,4 +1,3 @@
-from regnety.config.config import get_custom_train_config
 import tensorflow as tf
 import argparse
 import os
@@ -12,30 +11,10 @@ from regnety.regnety.utils import train_utils as tutil
 from regnety.regnety.config.config import (
     get_train_config,
     get_custom_train_config,
-    get_model_config,
+    get_preprocessing_config,
     ALLOWED_FLOPS
 )
 
-
-def top1error(y_true, y_pred):
-    acc = tf.keras.metrics.categorical_accuracy(y_true, y_pred)
-    return 1. - acc
-
-
-def make_model(flops, cfg):
-    optim = tutil.get_optimizer(cfg)
-    model = RegNetY(flops)
-    model.compile(
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-        optimizer=optim,
-        metrics=[
-            tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
-            tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
-            top1error
-        ]
-    )
-
-    return model
 
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
@@ -57,7 +36,7 @@ if flops not in ALLOWED_FLOPS:
         flops.rstrip('mf')))
 
 if trial:
-    cfg = get_custom_train_config(
+    train_cfg = get_custom_train_config(
         optimizer="sgd",
         base_lr=0.1,
         warmup_epochs=5,
@@ -70,42 +49,50 @@ if trial:
         model_dir="gs://adityakane-train/models"
     )
 else:
-    cfg = get_train_config()
+    train_cfg = get_train_config()
 
+prep_cfg = get_preprocessing_config( 
+    tfrecs_filepath=tfrecs_filepath,
+    batch_size=1024,
+    image_size=512,
+    crop_size=224,
+    resize_to_size=320,
+    augment_fn="default",
+    num_classes=1000,
+    percent_valid=1,
+    cache_dir="gs://adityakane-train/cache/",
+    color_jitter=False,
+    scale_to_unit=True
+) 
+
+
+print('Training options detected:', train_cfg)
+print('Preprocessing options detected:', prep_cfg)
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
-
-print('Options detected:', cfg)
-
 if strategy:
     with strategy.scope():
-        model = make_model(flops, cfg)
-
+        model = tutil.make_model(flops, train_cfg)
 else:
-    model = make_model(flops, cfg)
+    model = tutil.make_model(flops, train_cfg)
 
-train_ds, val_ds = ImageNet(
-    tfrecs_filepath,
-    batch_size=1024,
-    percent_valid=10 
-).make_dataset()
+train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
 
 trial_callbacks = [
-    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(cfg))
+    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg))
 ]
 
-callbacks = trial_callbacks if trial else tutil.get_callbacks(cfg)  
+callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg)  
 
 history = model.fit(
     train_ds,
-   	epochs=cfg.total_epochs,
+   	epochs=train_cfg.total_epochs,
    	validation_data=val_ds,
    	callbacks=callbacks
 )
 
-
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
-with tf.io.gfile.GFile(os.path.join(cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
+with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
     json.dumps(str(history.history), f)

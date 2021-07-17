@@ -36,38 +36,27 @@ class ImageNet:
     If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
-        tfrecs_filepath: list of filepaths of all TFRecords files
-        batch_size: batch_size for the Dataset
-        image_size: final image size of the images in the dataset
-        augment_fn: function to apply to dataset after loading raw TFrecords
-        num_classes: number of classes
-        percent_valid: Percentage of training data to be used as validation data
-        color_jitter: If True, color_jitter augmentation is applied
-        scale_to_unit: Whether the images should be scaled to [0,1]
+       cfg: regnety.regnety.config.config.PreprocessingConfig instance.
     """
     def __init__(
         self,
-        tfrecs_filepath: List[str]  = None,
-        batch_size: int = 1024,
-        image_size: int = 512,
-        augment_fn: Union[str, Callable]  = "default",
-        num_classes: int = 1000,
-        percent_valid: int = 1,
-        color_jitter: bool = False, 
-        scale_to_unit: bool = True
+        cfg
     ):
 
-        if (tfrecs_filepath is None) or  (tfrecs_filepath == []):
-            raise ValueError("List of TFrecords paths cannot be None or empty")
+        self.tfrecs_filepath = cfg.tfrecs_filepath
+        self.batch_size = cfg.batch_size
+        self.image_size = cfg.image_size
+        self.crop_size = cfg.crop_size
+        self.resize_to_size = cfg.resize_to_size
+        self.augment_fn = cfg.augment_fn
+        self.num_classes = cfg.num_classes
+        self.percent_valid = cfg.percent_valid
+        self.cache_dir = cfg.cache_dir
+        self.color_jitter = cfg.color_jitter
+        self.scale_to_unit = cfg.scale_to_unit
 
-        self.tfrecs_filepath = tfrecs_filepath
-        self.batch_size = batch_size
-        self.image_size = image_size
-        self.augment_fn = augment_fn
-        self.num_classes = num_classes
-        self.percent_valid = percent_valid
-        self.color_jitter = color_jitter
-        self.scale_to_unit = scale_to_unit
+        if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
+            raise ValueError("List of TFrecords paths cannot be None or empty")
         
         if self.augment_fn == "default":
             self.default_augment = True
@@ -134,7 +123,7 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        ds = ds.cache("gs://adityakane-train/cache/"+str(time.time()))
+        ds = ds.cache(self.cache_dir + str(time.time()))
         
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
@@ -257,9 +246,9 @@ class ImageNet:
         Returns:
             Center cropped example with batch of images and targets with same dimensions.
         """
-        aug_images = tf.image.resize(image, (320, 320))
-        aug_images = tf.image.central_crop(aug_images, 224./320.)
-        aug_images = tf.image.resize(image, (320, 320))
+        aug_images = tf.image.resize(
+            image, (self.resize_to_size, self.resize_to_size))
+        aug_images = tf.image.central_crop(aug_images, float(self.crop_size)/float(self.resize_to_size))
         return aug_images, target
 
     def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -312,7 +301,7 @@ class ImageNet:
 
         ds = ds.map(
             self._one_hot_encode_example,
-            num_parallel_calls = AUTO
+            num_parallel_calls=AUTO
         )
 
         val_ds = val_ds.map(
@@ -324,22 +313,22 @@ class ImageNet:
             if self.color_jitter:
                 ds = ds.map(
                     self.color_jitter,
-                    num_parallel_calls = AUTO
+                    num_parallel_calls=AUTO
                 )
             
             ds = ds.map(
                 self.random_flip,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
 
             ds = ds.map(
                 self.random_rotate,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
 
             ds =  ds.map(
                 self.random_crop,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
         
         else:
@@ -350,13 +339,13 @@ class ImageNet:
 
         val_ds = val_ds.map(
                 self.center_crop_224,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
         
         if self.scale_to_unit:
             ds = ds.map(
                 self._scale_to_unit,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
 
             val_ds = val_ds.map(

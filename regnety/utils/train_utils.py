@@ -80,6 +80,26 @@ def get_callbacks(cfg):
     ]
 
 
+def top1error(y_true, y_pred):
+    acc = tf.keras.metrics.categorical_accuracy(y_true, y_pred)
+    return 1. - acc
+
+
+def make_model(flops, train_cfg):
+    optim = get_optimizer(train_cfg)
+    model = regnety.regnety.models.model.RegNetY(flops)
+    model.compile(
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+        optimizer=optim,
+        metrics=[
+            tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
+            tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
+            top1error
+        ]
+    )
+
+    return model
+
 def connect_to_tpu(tpu_address: str = None):
     if tpu_address is not None:  # When using GCP
         cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
@@ -95,7 +115,7 @@ def connect_to_tpu(tpu_address: str = None):
     else:                           # When using Colab or Kaggle
         try:
             cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
-            strategy = tf.distribute.experimental.TPUStrategy(tpu)
+            strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
             print("Running on TPU ", cluster_resolver.master())
             print("REPLICAS: ", strategy.num_replicas_in_sync)
             return cluster_resolver, strategy
