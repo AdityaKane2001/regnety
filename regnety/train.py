@@ -97,10 +97,7 @@ history = model.fit(
     train_ds,
    	epochs=cfg.total_epochs,
    	validation_data=val_ds,
-    callbacks = [
-        tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(cfg))
-    ]
-   	# callbacks=callbacks
+   	callbacks=callbacks
 )
 
 
