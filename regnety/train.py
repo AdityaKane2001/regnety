@@ -17,6 +17,26 @@ from regnety.regnety.config.config import (
 )
 
 
+def top1error(y_true, y_pred):
+    acc = tf.keras.metrics.categorical_accuracy(y_true, y_pred)
+    return 1. - acc
+
+
+def make_model(flops, cfg):
+    optim = tutil.get_optimizer(cfg)
+    model = RegNetY(flops)
+    model.compile(
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+        optimizer=optim,
+        metrics=[
+            tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
+            tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
+            top1error
+        ]
+    )
+
+    return model
+
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
@@ -52,27 +72,10 @@ if trial:
 else:
     cfg = get_train_config()
 
-def top1error(y_true, y_pred):
-    acc = tf.keras.metrics.categorical_accuracy(y_true, y_pred)
-    return 1. - acc
-
-
-def make_model(flops, cfg):
-    optim = tutil.get_optimizer(cfg)
-    model = RegNetY(flops)
-    model.compile(
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-        optimizer=optim,
-        metrics=[
-            tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
-            tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
-            top1error
-        ]
-    )
-    
-    return model
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
+
+print('Options detected:', cfg)
 
 if strategy:
     with strategy.scope():
