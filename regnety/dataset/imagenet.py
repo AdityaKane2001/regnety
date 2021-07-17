@@ -40,7 +40,9 @@ class ImageNet:
         image_size: final image size of the images in the dataset
         augment_fn: function to apply to dataset after loading raw TFrecords
         num_classes: number of classes
-        
+        percent_valid: Percentage of training data to be used as validation data
+        color_jitter: If True, color_jitter augmentation is applied
+        scale_to_unit: Whether the images should be scaled to [0,1]
     """
     def __init__(
         self,
@@ -49,6 +51,8 @@ class ImageNet:
         image_size: int = 512,
         augment_fn: Union[str, Callable]  = "default",
         num_classes: int = 1000,
+        percent_valid: int = 1,
+        color_jitter: bool = False, 
         scale_to_unit: bool = True
     ):
 
@@ -60,6 +64,8 @@ class ImageNet:
         self.image_size = image_size
         self.augment_fn = augment_fn
         self.num_classes = num_classes
+        self.percent_valid = percent_valid
+        self.color_jitter = color_jitter
         self.scale_to_unit = scale_to_unit
         
         if self.augment_fn == "default":
@@ -133,20 +139,26 @@ class ImageNet:
         ds = ds.prefetch(AUTO)
         return ds
 
-    def _split_ds(self, ds: Type[tf.data.Dataset]) -> Type[tf.data.Dataset]:
+    def _split_ds(self, ds: Type[tf.data.Dataset], percent: int) -> Type[tf.data.Dataset]:
         """
         Splits the dataset into training and validation datasets,
 
         Args:
             ds: A tf.data.Dataset
+            percent: Percentage of train dataset to take in validation 
+                dataset 
 
         Returns:
-            Two datasets, one with 99% examples and the other with 1%.
+            Two datasets, one with (100 - percent)% examples and the other with percent%.
         """
 
-        one_percent = int(len(self.tfrecs_filepath) / 100)
-        val_ds = ds.take(one_percent)
-        train_ds = ds.skip(one_percent)
+        if int(percent) >= 100:
+            raise ValueError('Percent of train data used for validation'
+                             f'must be less than 100. Recieved: {percent}')
+
+        _percent = percent * int(len(self.tfrecs_filepath) / 100)
+        val_ds = ds.take(_percent)
+        train_ds = ds.skip(_percent)
 
         return train_ds, val_ds
 
@@ -179,10 +191,25 @@ class ImageNet:
         aug_images = tf.image.random_hue(aug_images, hue_delta)
         aug_images = tf.image.random_saturation(aug_images, saturation_lower, 
             saturation_upper)
-        aug_images = tf.image.random_flip_left_right(aug_images)
+        
         
         return aug_images, target
 
+    def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Returns randomly flipped batch of images. Only hotizontal flip 
+        is available
+
+        Args: 
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+
+        aug_images = tf.image.random_flip_left_right(image)
+        return aug_images, target
 
 
     def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -280,7 +307,7 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
         
-        ds, val_ds = self._split_ds(ds)
+        ds, val_ds = self._split_ds(ds, self.percent_valid)
 
         ds = ds.map(
             self._one_hot_encode_example,
@@ -293,8 +320,14 @@ class ImageNet:
         )
 
         if self.default_augment:
+            if self.color_jitter:
+                ds = ds.map(
+                    self.color_jitter,
+                    num_parallel_calls = AUTO
+                )
+            
             ds = ds.map(
-                self.color_jitter,
+                self.random_flip,
                 num_parallel_calls = AUTO
             )
 

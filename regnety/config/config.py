@@ -177,3 +177,28 @@ def get_train_config():
         log_dir="gs://adityakane-train/logs",
         model_dir="gs://adityakane-train/models"
     )
+
+def get_custom_train_config(
+    optimizer: str,
+    base_lr: float,
+    warmup_epochs: int,
+    warmup_factor: float,
+    total_epochs: int,
+    weight_decay: float,
+    momentum: float,
+    lr_schedule: str,
+    log_dir: str,
+    model_dir: str
+):
+    return TrainConfig(
+        optimizer=optimizer,
+        base_lr=base_lr,
+        warmup_epochs=warmup_epochs,
+        warmup_factor=warmup_factor,
+        total_epochs=total_epochs,
+        weight_decay=weight_decay,
+        momentum=momentum,
+        lr_schedule=lr_schedule,
+        log_dir=log_dir,
+        model_dir=model_dir
+    )

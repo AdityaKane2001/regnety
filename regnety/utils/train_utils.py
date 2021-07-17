@@ -44,8 +44,8 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
                 warmup_factor = cfg.warmup_factor * (1. - alpha) + alpha
                 return new_lr * warmup_factor
             else:
-                new_lr = 0.5 * (1.0 +
-                    tf.math.cos(PI * epoch / cfg.total_epochs))
+                new_lr = new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
+                    cfg.total_epochs)) * cfg.base_lr
                 return new_lr
 
         return half_cos_schedule
@@ -81,22 +81,24 @@ def get_callbacks(cfg):
 
 
 def connect_to_tpu(tpu_address: str = None):
-    if tpu_address is not None:
+    if tpu_address is not None:  # When using GCP
         cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
             tpu=tpu_address)
         if tpu_address not in ("", "local"):
             tf.config.experimental_connect_to_cluster(cluster_resolver)
         tf.distribute.TPUStrategy(cluster_resolver)
-        print('Running on TPU ', cluster_resolver.master())
         tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
         strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+        print("Running on TPU ", cluster_resolver.master())
         print("REPLICAS: ", strategy.num_replicas_in_sync)
         return cluster_resolver, strategy
-    else:
+    else:                           # When using Colab or Kaggle
         try:
-            tpu = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
-            # instantiate a distribution strategy
-            tpu_strategy = tf.distribute.experimental.TPUStrategy(tpu)
-            return tpu, tpu_strategy
+            cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
+            strategy = tf.distribute.experimental.TPUStrategy(tpu)
+            print("Running on TPU ", cluster_resolver.master())
+            print("REPLICAS: ", strategy.num_replicas_in_sync)
+            return cluster_resolver, strategy
         except:
+            print("WARNING: No TPU detected.")
             return None, None
