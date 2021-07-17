@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
 parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
-parser.add_argument("-trial", "--trail_run", action='store_true')
+parser.add_argument("-trial", "--trial_run", action='store_true')
 
 args = parser.parse_args()
 flops = args.flops
@@ -61,7 +61,7 @@ def make_model(flops, cfg):
     optim = tutil.get_optimizer(cfg)
     model = RegNetY(flops)
     model.compile(
-        loss='categorical_crossentropy',
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
         optimizer=optim,
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
@@ -97,7 +97,10 @@ history = model.fit(
     train_ds,
    	epochs=cfg.total_epochs,
    	validation_data=val_ds,
-   	callbacks=callbacks
+    callbacks = [
+        tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(cfg))
+    ]
+   	# callbacks=callbacks
 )
 
 
