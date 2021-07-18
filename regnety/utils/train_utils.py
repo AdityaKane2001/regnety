@@ -121,4 +121,5 @@ def connect_to_tpu(tpu_address: str = None):
             return cluster_resolver, strategy
         except:
             print("WARNING: No TPU detected.")
-            return None, None
+            mirrored_strategy = tf.distribute.MirroredStrategy()
+            return None, mirrored_strategy

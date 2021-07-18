@@ -35,10 +35,12 @@ if flops not in ALLOWED_FLOPS:
     raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS, 
         flops.rstrip('mf')))
 
+cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
+
 if trial:
     train_cfg = get_custom_train_config(
         optimizer="sgd",
-        base_lr=0.1,
+        base_lr=0.1 * strategy.num_replicas_in_sync,
         warmup_epochs=5,
         warmup_factor=0.1,
         total_epochs=100,
@@ -69,11 +71,7 @@ prep_cfg = get_preprocessing_config(
 print('Training options detected:', train_cfg)
 print('Preprocessing options detected:', prep_cfg)
 
-cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
-if strategy:
-    with strategy.scope():
-        model = tutil.make_model(flops, train_cfg)
-else:
+with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
 
 train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
