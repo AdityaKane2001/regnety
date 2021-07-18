@@ -57,7 +57,7 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
 def get_callbacks(cfg):
     lr_callback = tf.keras.callbacks.LearningRateScheduler(get_train_schedule(cfg))
     tboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir = cfg.log_dir, histogram_freq=1, profile_batch="0,1023")
+        log_dir=cfg.log_dir, histogram_freq=1)  # profile_batch="0,1023"
     best_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(cfg.model_dir, "best_model_{epoch:02d}-{val_loss:.2f}.h5"),
         save_weights_only=True,

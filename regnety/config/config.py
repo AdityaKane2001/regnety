@@ -66,6 +66,7 @@ class TrainConfig:
     lr_schedule: str
     log_dir: str
     model_dir: str
+    cache_dir: str
 
 
 @dataclass

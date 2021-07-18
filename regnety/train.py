@@ -48,7 +48,8 @@ if trial:
         momentum=0.9,
         lr_schedule="half_cos",
         log_dir="gs://adityakane-train/logs",
-        model_dir="gs://adityakane-train/models"
+        model_dir="gs://adityakane-train/models",
+        cache_dir="gs://adityakane-train/cache"
     )
 else:
     train_cfg = get_train_config()
@@ -76,8 +77,13 @@ with strategy.scope():
 
 train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
 
+now = datetime.now()
+date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
+
 trial_callbacks = [
-    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg))
+    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
+    tf.keras.callbacks.TensorBoard(
+        log_dir=os.path.join(train_cfg.log_dir, str(date_time)), histogram_freq=1)  # profile_batch="0,1023"
 ]
 
 callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg)  
@@ -89,8 +95,7 @@ history = model.fit(
    	callbacks=callbacks
 )
 
-now = datetime.now()
-date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
+
 
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
-    json.dumps(str(history.history), f)
+    json.dump(str(history.history), f)

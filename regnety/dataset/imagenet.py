@@ -146,7 +146,7 @@ class ImageNet:
             raise ValueError('Percent of train data used for validation'
                              f'must be less than 100. Recieved: {percent}')
 
-        _percent = percent * int(len(self.tfrecs_filepath) / 100)
+        _percent = int(percent * len(self.tfrecs_filepath) / 100)
         val_ds = ds.take(_percent)
         train_ds = ds.skip(_percent)
 
