@@ -232,6 +232,7 @@ class ImageNet:
         """
 
         cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
+        cropped = tf.image.resize(cropped, size=(224,224))
         return cropped, target
     
     def center_crop_224(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -264,7 +265,8 @@ class ImageNet:
         """
 
         aug_images = tf.cast(image, tf.float32)
-        aug_images = aug_images / 255.
+        aug_images = aug_images / 127.5
+        aug_images = aug_images - 1.
         return aug_images, target
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
@@ -331,7 +333,7 @@ class ImageNet:
                 num_parallel_calls=AUTO
             )
         
-        else:
+        elif self.augment_fn is not None:
             ds = ds.map(
                 self.augment_fn,
                 num_parallel_calls=AUTO

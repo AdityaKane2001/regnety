@@ -1,10 +1,13 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
-import math
+import argparse
+import os
+import json
+import regnety
 import wandb
+
+from datetime import datetime
 from wandb.keras import WandbCallback
-import regnety.regnety.utils.model_utils as mutil
-from regnety.regnety.models import RegNetY
+from regnety.regnety.models.model import RegNetY
 from regnety.regnety.dataset.imagenet import ImageNet
 from regnety.regnety.utils import train_utils as tutil
 from regnety.regnety.config.config import (
@@ -15,86 +18,101 @@ from regnety.regnety.config.config import (
 )
 
 
-PI = math.pi
+parser = argparse.ArgumentParser(description="Train RegNetY")
+parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
+parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
+parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
+parser.add_argument("-trial", "--trial_run", action='store_true')
 
-def preprocess(image, target):
-    aug_images = tf.image.resize(image, (224, 224))
-    aug_images = tf.cast(aug_images, tf.float32)
-    aug_images = aug_images / 127.5
-    aug_images = aug_images - 1
-    return aug_images, target
+args = parser.parse_args()
+flops = args.flops
+tpu_address = args.tpu_address
+tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
+trial = args.trial_run
 
-tf.keras.backend.clear_session()
+if "mf" not in flops:
+    flops += "mf"
 
-tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenette-tfrecs/*.tfrecord")
+if flops not in ALLOWED_FLOPS:
+    raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS, 
+        flops.rstrip('mf')))
+
+cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
+
+if trial:
+    train_cfg = get_custom_train_config(
+        optimizer="sgd",
+        base_lr=0.1 * strategy.num_replicas_in_sync,
+        warmup_epochs=5,
+        warmup_factor=0.1,
+        total_epochs=100,
+        weight_decay=5e-4,
+        momentum=0.9,
+        lr_schedule="half_cos",
+        log_dir="gs://adityakane-train/logs",
+        model_dir="gs://adityakane-train/models",
+        cache_dir="gs://adityakane-train/cache"
+    )
+else:
+    train_cfg = get_train_config()
 
 prep_cfg = get_preprocessing_config( 
     tfrecs_filepath=tfrecs_filepath,
     batch_size=1024,
     image_size=512,
     crop_size=224,
-    resize_to_size=320,
-    augment_fn=preprocess,
+    resize_to_size=224,
+    augment_fn="default",
     num_classes=1000,
     percent_valid=11,
     cache_dir="gs://adityakane-train/cache/",
     color_jitter=False,
-    scale_to_unit=False
+    scale_to_unit=True
 ) 
 
 
-train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
-
-def half_cos_schedule(epoch, lr):
-    # Taken from pycls/pycls/core/optimizer.py, since not clear from paper.
-    if epoch < 5:
-        new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
-            100)) * 0.8
-        alpha = epoch / 5
-        warmup_factor = 0.1 * (1. - alpha) + alpha
-        return new_lr * warmup_factor
-    else:
-        new_lr = new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
-            100)) * 0.8
-        return new_lr
-
-
-cluster_resolver, strategy = tutil.connect_to_tpu(None)
+print('Training options detected:', train_cfg)
+print('Preprocessing options detected:', prep_cfg)
 
 with strategy.scope():
+    optim = tutil.get_optimizer(train_cfg)
     model = tf.keras.applications.ResNet50V2(
         include_top=True,
         weights=None,
     )
-    optim = tfa.optimizers.SGDW(
-            weight_decay=5e-4,
-            learning_rate=0.8,
-            momentum=0.9,
-            nesterov=True
-        )
     model.compile(
         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
         optimizer=optim,
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
             tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
+            tutil.top1error
         ]
     )
 
+train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
+
+now = datetime.now()
+date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
 wandb.init(entity='compyle', project='regnety',
-           job_type='train', name= 'ResNet50V2')
-
+           job_type='train', name="ResNet50V2")
 
 trial_callbacks = [
-    tf.keras.callbacks.LearningRateScheduler(half_cos_schedule),
+    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
+    tf.keras.callbacks.TensorBoard(
+        log_dir=os.path.join(train_cfg.log_dir, str(date_time)), histogram_freq=1),  # profile_batch="0,1023"
     WandbCallback()
 ]
 
+callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg)  
 
 history = model.fit(
     train_ds,
-   	epochs=100,
+   	epochs=train_cfg.total_epochs,
    	validation_data=val_ds,
-   	callbacks=trial_callbacks
+   	callbacks=callbacks
 )
+
+with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
+   json.dump(str(history.history), f)

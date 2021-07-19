@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
 parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
-parser.add_argument("-trial", "--trial_run", action='store_true')
+parser.add_argument("-trial", "--trial_run", action="store_true")
 
 args = parser.parse_args()
 flops = args.flops
@@ -35,7 +35,7 @@ if "mf" not in flops:
 
 if flops not in ALLOWED_FLOPS:
     raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS, 
-        flops.rstrip('mf')))
+        flops.rstrip("mf")))
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
@@ -71,8 +71,8 @@ prep_cfg = get_preprocessing_config(
 ) 
 
 
-print('Training options detected:', train_cfg)
-print('Preprocessing options detected:', prep_cfg)
+print("Training options detected:", train_cfg)
+print("Preprocessing options detected:", prep_cfg)
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
@@ -82,8 +82,8 @@ train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
-wandb.init(entity='compyle', project='regnety',
-           job_type='train')
+wandb.init(entity="compyle", project="regnety",
+           job_type="train", name="SGDW_200MF")
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
@@ -101,5 +101,5 @@ history = model.fit(
    	callbacks=callbacks
 )
 
-with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
+with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, "history_%s.json" % date_time), "a+") as f:
    json.dump(str(history.history), f)
