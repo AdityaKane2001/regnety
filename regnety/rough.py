@@ -18,13 +18,16 @@ from regnety.regnety.config.config import (
 PI = math.pi
 
 def preprocess(image, target):
-    aug_image = tf.cast(image, tf.float32)
-    aug_image = tf.keras.applications.resnet_v2.preprocess_input(aug_image) 
-    aug_image = tf.cast(aug_image, tf.uint8)
-    return aug_image, target
+    aug_images = tf.image.resize(image, (224, 224))
+    aug_images = tf.cast(aug_images, tf.float32)
+    aug_images = aug_images / 127.5
+    aug_images = aug_images - 1
+    return aug_images, target
 
 tf.keras.backend.clear_session()
+
 tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenette-tfrecs/*.tfrecord")
+
 prep_cfg = get_preprocessing_config( 
     tfrecs_filepath=tfrecs_filepath,
     batch_size=1024,
@@ -78,18 +81,20 @@ with strategy.scope():
         ]
     )
 
+
+wandb.init(entity='compyle', project='regnety',
+           job_type='train', name= 'ResNet50V2')
+
+
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(half_cos_schedule),
     WandbCallback()
 ]
 
 
-wandb.init(entity='compyle', project='regnety',
-           job_type='train', name= 'ResNet50V2')
-
 history = model.fit(
     train_ds,
-   	epochs=train_100,
+   	epochs=100,
    	validation_data=val_ds,
    	callbacks=trial_callbacks
 )
