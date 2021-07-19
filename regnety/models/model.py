@@ -7,7 +7,7 @@ from typing import List, Tuple, Union
 
 
 def _get_model_with_config(config,  
-    userdef_input_shape: Union[List, Tuple] = (224,224,3)):
+    userdef_input_shape: Union[List, Tuple] = (320,320,3)):
     """
     Makes a tf.keras.Sequential model using the given config.
         
@@ -57,7 +57,7 @@ def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None) -> tf.keras
             raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
 
     if input_shape is None:
-        userdef_input_shape = (224,224,3)
+        userdef_input_shape = (320,320,3)
     else: 
         userdef_input_shape = input_shape
     

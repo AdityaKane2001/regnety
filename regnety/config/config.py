@@ -74,6 +74,8 @@ class PreprocessingConfig:
     tfrecs_filepath: List[str]
     batch_size: int
     image_size: int
+    crop_size: int
+    resize_to_size: int
     augment_fn: Union[str, Callable]
     num_classes: int
     percent_valid: int

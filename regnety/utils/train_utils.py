@@ -106,16 +106,15 @@ def connect_to_tpu(tpu_address: str = None):
             tpu=tpu_address)
         if tpu_address not in ("", "local"):
             tf.config.experimental_connect_to_cluster(cluster_resolver)
-        tf.distribute.TPUStrategy(cluster_resolver)
         tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-        strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+        strategy = tf.distribute.TPUStrategy(cluster_resolver)
         print("Running on TPU ", cluster_resolver.master())
         print("REPLICAS: ", strategy.num_replicas_in_sync)
         return cluster_resolver, strategy
     else:                           # When using Colab or Kaggle
         try:
             cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
-            strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+            strategy = tf.distribute.TPUStrategy(cluster_resolver)
             print("Running on TPU ", cluster_resolver.master())
             print("REPLICAS: ", strategy.num_replicas_in_sync)
             return cluster_resolver, strategy

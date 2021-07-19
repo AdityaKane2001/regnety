@@ -62,7 +62,7 @@ prep_cfg = get_preprocessing_config(
     resize_to_size=320,
     augment_fn="default",
     num_classes=1000,
-    percent_valid=1,
+    percent_valid=11,
     cache_dir="gs://adityakane-train/cache/",
     color_jitter=False,
     scale_to_unit=True
@@ -95,7 +95,5 @@ history = model.fit(
    	callbacks=callbacks
 )
 
-
-
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, 'history_%s.json' % date_time), 'a+') as f:
-    json.dump(str(history.history), f)
+   json.dump(str(history.history), f)
