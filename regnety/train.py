@@ -3,8 +3,10 @@ import argparse
 import os
 import json
 import regnety
+import wandb
 
 from datetime import datetime
+from wandb.keras import WandbCallback
 from regnety.regnety.models.model import RegNetY
 from regnety.regnety.dataset.imagenet import ImageNet
 from regnety.regnety.utils import train_utils as tutil
@@ -80,10 +82,14 @@ train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
+wandb.init(entity='compyle', project='regnety',
+           job_type='train')
+
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
     tf.keras.callbacks.TensorBoard(
-        log_dir=os.path.join(train_cfg.log_dir, str(date_time)), histogram_freq=1)  # profile_batch="0,1023"
+        log_dir=os.path.join(train_cfg.log_dir, str(date_time)), histogram_freq=1),  # profile_batch="0,1023"
+    WandbCallback()
 ]
 
 callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg)  
