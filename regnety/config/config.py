@@ -82,6 +82,7 @@ class PreprocessingConfig:
     cache_dir: str
     color_jitter: bool
     scale_to_unit: bool
+    scale_method: str
 
 
 def get_preprocessing_config(
@@ -95,7 +96,8 @@ def get_preprocessing_config(
     percent_valid: int = 1,
     cache_dir: str = "gs://adityakane-train/cache/",
     color_jitter: bool = False,
-    scale_to_unit: bool = True
+    scale_to_unit: bool = True,
+    scale_method: str = "tf"
 ):
 
     """
@@ -127,7 +129,8 @@ def get_preprocessing_config(
         percent_valid=percent_valid,
         cache_dir=cache_dir,
         color_jitter=color_jitter,
-        scale_to_unit=scale_to_unit
+        scale_to_unit=scale_to_unit,
+        scale_method=scale_method
     )
 
 

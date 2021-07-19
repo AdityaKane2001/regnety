@@ -54,6 +54,7 @@ class ImageNet:
         self.cache_dir = cfg.cache_dir
         self.color_jitter = cfg.color_jitter
         self.scale_to_unit = cfg.scale_to_unit
+        self.scale_method = cfg.scale_method
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
@@ -263,11 +264,17 @@ class ImageNet:
         Returns:
             Scaled example with batch of images and targets with same dimensions.
         """
-
-        aug_images = tf.cast(image, tf.float32)
-        aug_images = aug_images / 127.5
-        aug_images = aug_images - 1.
-        return aug_images, target
+        if self.scale_method == "torch":
+            aug_images = tf.cast(image, tf.float32)
+            aug_images = aug_images / 127.5
+            aug_images = aug_images - 1.
+            return aug_images, target
+        
+        else:
+            aug_images = tf.cast(image, tf.float32)
+            aug_images = aug_images / 255.
+            return aug_images, target
+            
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
         """Takes an example having keys 'image' and 'label' and returns example

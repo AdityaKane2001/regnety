@@ -67,7 +67,8 @@ prep_cfg = get_preprocessing_config(
     percent_valid=11,
     cache_dir="gs://adityakane-train/cache/",
     color_jitter=False,
-    scale_to_unit=True
+    scale_to_unit=True,
+    scale_method="torch"
 ) 
 
 
@@ -83,7 +84,7 @@ now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
 wandb.init(entity="compyle", project="regnety",
-           job_type="train", name="SGDW_200MF")
+           job_type="train", name="SGDW_400MF")
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
