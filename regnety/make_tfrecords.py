@@ -21,7 +21,7 @@ def main():
     parser.add_argument("-v", "--validation_set",action="store_true",
         help="To be specified if dataset has the file structure of ImageNet validation set.")
     parser.add_argument("-b", "--use_apache_beam",action="store_true",
-        help="To be specified if Apache Beam is too be used to make TFRecords.")
+        help="To be specified if Apache Beam is to be used to make TFRecords.")
     
 
     args = parser.parse_args()
