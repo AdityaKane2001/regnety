@@ -44,7 +44,7 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
                 warmup_factor = cfg.warmup_factor * (1. - alpha) + alpha
                 return new_lr * warmup_factor
             else:
-                new_lr = new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
+                new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
                     cfg.total_epochs)) * cfg.base_lr
                 return new_lr
 

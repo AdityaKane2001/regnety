@@ -54,6 +54,7 @@ class TrainConfig:
         lr_schedule: One of "constant" or "half_cos"
         log_dir: Path to store logs
         model_dir: Path to store model checkpoints
+        cache_dir:Path to cache parsed dataset
     """
 
     optimizer: str
@@ -99,18 +100,22 @@ def get_preprocessing_config(
 ):
 
     """
-    Getter function for preprocessing configuration.
+    Getter function for preprocessing configuration. Images are first resized to `resize_size`
+    and then a central crop of `crop_size` is taken.  
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files.
         batch_size: batch_size for the Dataset.
         image_size: final image size of the images in the dataset.
+        crop_size: size to take crop of
+        resize_size: size to resize to before cropping
         augment_fn: function to apply to dataset after loading raw TFrecords.
         num_classes: number of classes.
-        percent_valid: Percentage of training data to be used as validation data.
         cache_dir: Directory to use for TF cache. 
         color_jitter: If True, color_jitter augmentation is applied.
-        scale_to_unit: Whether the images should be scaled to [0,1].
+        scale_to_unit: Whether the images should be scaled using `scale_method`.
+        scale_method: Use `tf` if images must be in [0,1]. Use `torch` if images must
+            be in [-1,1]
     
     Returns:
         A PreprocessingConfig dataclass instance with all attributes
@@ -124,7 +129,6 @@ def get_preprocessing_config(
         resize_to_size=resize_to_size,
         augment_fn=augment_fn,
         num_classes=num_classes,
-        percent_valid=percent_valid,
         cache_dir=cache_dir,
         color_jitter=color_jitter,
         scale_to_unit=scale_to_unit,

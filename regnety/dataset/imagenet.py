@@ -163,7 +163,7 @@ class ImageNet:
 
     def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Returns randomly flipped batch of images. Only hotizontal flip 
+        Returns randomly flipped batch of images. Only horizontal flip 
         is available
 
         Args: 
@@ -191,7 +191,7 @@ class ImageNet:
         """
 
         angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.)
-        rotated = tfa.image.rotate(image, angles, fill_value = 128.0)
+        rotated = tfa.image.rotate(image, angles, fill_value=128.0)
         return rotated, target
 
 
@@ -207,14 +207,13 @@ class ImageNet:
             Augmented example with batch of images and targets with same dimensions.
         """
 
-        cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
-        cropped = tf.image.resize(cropped, size=(224,224))
+        cropped = tf.image.random_crop(image, size=(self.batch_size, 320, 320, 3))
         return cropped, target
     
-    def center_crop_224(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+    def center_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Center crops a given batch of images to (320, 320) and resizes them to 
-        (224, 224)
+        Resizes a batch of images to (self.resize_to_size, self.resize_to_size) and
+        then takes central crop of (self.crop_size, self.crop_size)
 
         Args: 
             image: Batch of images to perform center crop on.
@@ -312,7 +311,7 @@ class ImageNet:
         
         elif self.val_augment:
             ds = ds.map(
-                self.center_crop_224,
+                self.center_crop,
                 num_parallel_calls=AUTO
             )
 
