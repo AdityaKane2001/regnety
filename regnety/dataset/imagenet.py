@@ -50,7 +50,6 @@ class ImageNet:
         self.resize_to_size = cfg.resize_to_size
         self.augment_fn = cfg.augment_fn
         self.num_classes = cfg.num_classes
-        self.percent_valid = cfg.percent_valid
         self.cache_dir = cfg.cache_dir
         self.color_jitter = cfg.color_jitter
         self.scale_to_unit = cfg.scale_to_unit
@@ -129,30 +128,6 @@ class ImageNet:
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
         return ds
-
-    def _split_ds(self, ds: Type[tf.data.Dataset], percent: int) -> Type[tf.data.Dataset]:
-        """
-        Splits the dataset into training and validation datasets,
-
-        Args:
-            ds: A tf.data.Dataset
-            percent: Percentage of train dataset to take in validation 
-                dataset 
-
-        Returns:
-            Two datasets, one with (100 - percent)% examples and the other with percent%.
-        """
-
-        if int(percent) >= 100:
-            raise ValueError('Percent of train data used for validation'
-                             f'must be less than 100. Recieved: {percent}')
-
-        _percent = int(percent * len(self.tfrecs_filepath) / 100)
-        val_ds = ds.take(_percent)
-        train_ds = ds.skip(_percent)
-
-        return train_ds, val_ds
-
         
 
     def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -306,17 +281,12 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
         
-        ds, val_ds = self._split_ds(ds, self.percent_valid)
-
+        
         ds = ds.map(
             self._one_hot_encode_example,
             num_parallel_calls=AUTO
         )
 
-        val_ds = val_ds.map(
-            self._one_hot_encode_example,
-            num_parallel_calls=AUTO
-        )
 
         if self.default_augment:
             if self.color_jitter:
@@ -340,16 +310,18 @@ class ImageNet:
                 num_parallel_calls=AUTO
             )
         
-        elif self.augment_fn is not None:
+        elif self.val_augment:
+            ds = ds.map(
+                self.center_crop_224,
+                num_parallel_calls=AUTO
+            )
+
+        else:
             ds = ds.map(
                 self.augment_fn,
                 num_parallel_calls=AUTO
             )
-
-        val_ds = val_ds.map(
-                self.center_crop_224,
-                num_parallel_calls=AUTO
-            )
+        
         
         if self.scale_to_unit:
             ds = ds.map(
@@ -357,10 +329,6 @@ class ImageNet:
                 num_parallel_calls=AUTO
             )
 
-            val_ds = val_ds.map(
-                self._scale_to_unit,
-                num_parallel_calls=AUTO
-            )
 
 
-        return ds, val_ds
+        return ds

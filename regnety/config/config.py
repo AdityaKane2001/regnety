@@ -78,7 +78,6 @@ class PreprocessingConfig:
     resize_to_size: int
     augment_fn: Union[str, Callable]
     num_classes: int
-    percent_valid: int
     cache_dir: str
     color_jitter: bool
     scale_to_unit: bool
@@ -93,7 +92,6 @@ def get_preprocessing_config(
     resize_to_size: int = 320,
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
-    percent_valid: int = 1,
     cache_dir: str = "gs://adityakane-train/cache/",
     color_jitter: bool = False,
     scale_to_unit: bool = True,

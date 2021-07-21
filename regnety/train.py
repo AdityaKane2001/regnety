@@ -28,6 +28,9 @@ args = parser.parse_args()
 flops = args.flops
 tpu_address = args.tpu_address
 tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
+tfrecs_filepath.sort()
+train_tfrecs_filepath = tfrecs_filepath[:-1]
+val_tfrecs_filepath = [tfrecs_filepath[-1]]
 trial = args.trial_run
 
 if "mf" not in flops:
@@ -56,29 +59,40 @@ if trial:
 else:
     train_cfg = get_train_config()
 
-prep_cfg = get_preprocessing_config( 
-    tfrecs_filepath=tfrecs_filepath,
+train_prep_cfg = get_preprocessing_config(
+    tfrecs_filepath=train_tfrecs_filepath,
     batch_size=1024,
     image_size=512,
     crop_size=224,
-    resize_to_size=320,
+    resize_to_size=224,
     augment_fn="default",
     num_classes=1000,
-    percent_valid=11,
     cache_dir="gs://adityakane-train/cache/",
     color_jitter=False,
-    scale_to_unit=True,
-    scale_method="torch"
-) 
+    scale_to_unit=True
+)
 
+val_prep_cfg = get_preprocessing_config(
+    tfrecs_filepath=val_tfrecs_filepath,
+    batch_size=1024,
+    image_size=512,
+    crop_size=224,
+    resize_to_size=224,
+    augment_fn="val",
+    num_classes=1000,
+    cache_dir="gs://adityakane-train/cache/",
+    color_jitter=False,
+    scale_to_unit=True
+)
 
 print("Training options detected:", train_cfg)
-print("Preprocessing options detected:", prep_cfg)
+print('Preprocessing options detected:', val_prep_cfg)
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
 
-train_ds, val_ds = ImageNet(prep_cfg).make_dataset()
+train_ds = ImageNet(train_prep_cfg).make_dataset()
+val_ds = ImageNet(val_prep_cfg).make_dataset()
 
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
