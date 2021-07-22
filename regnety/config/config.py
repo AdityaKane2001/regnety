@@ -100,7 +100,7 @@ def get_preprocessing_config(
 ):
 
     """
-    Getter function for preprocessing configuration. Images are first resized to `resize_size`
+    Getter function for preprocessing configuration. Images are first resized to `resize_pre_crop`
     and then a central crop of `crop_size` is taken.  
 
     Args:
@@ -108,7 +108,7 @@ def get_preprocessing_config(
         batch_size: batch_size for the Dataset.
         image_size: final image size of the images in the dataset.
         crop_size: size to take crop of
-        resize_size: size to resize to before cropping
+        resize_pre_crop: size to resize to before cropping
         augment_fn: function to apply to dataset after loading raw TFrecords.
         num_classes: number of classes.
         cache_dir: Directory to use for TF cache. 
