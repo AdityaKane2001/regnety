@@ -44,12 +44,12 @@ cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 if trial:
     train_cfg = get_custom_train_config(
-        optimizer="sgd",
-        base_lr=0.1 * strategy.num_replicas_in_sync,
+        optimizer="adamw",
+        base_lr=0.001 * strategy.num_replicas_in_sync,
         warmup_epochs=5,
         warmup_factor=0.1,
         total_epochs=100,
-        weight_decay=5e-4,
+        weight_decay=5e-5,
         momentum=0.9,
         lr_schedule="half_cos",
         log_dir="gs://adityakane-train/logs",
@@ -82,7 +82,7 @@ now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
 wandb.init(entity="compyle", project="regnety",
-           job_type="train", name="SGDW_400MF")
+           job_type="train", name="AdamW_"+flops.upper())
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
