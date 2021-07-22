@@ -2,7 +2,7 @@ import math
 import tensorflow as tf
 import tensorflow_addons as tfa
 import os
-import datetime
+from datetime import datetime
 
 from typing import Union, Callable, Tuple, List, Type
 
