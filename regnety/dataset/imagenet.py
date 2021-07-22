@@ -2,7 +2,7 @@ import math
 import tensorflow as tf
 import tensorflow_addons as tfa
 import os
-import time
+import datetime
 
 from typing import Union, Callable, Tuple, List, Type
 
@@ -123,7 +123,8 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        ds = ds.cache(self.cache_dir + str(time.time()))
+        filename = datetime.now().strftime("%m_%d_%Y_%Hh%Mm")
+        ds = ds.cache(os.path.join(self.cache_dir, filename))
         
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
