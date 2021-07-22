@@ -47,7 +47,7 @@ class ImageNet:
         self.batch_size = cfg.batch_size
         self.image_size = cfg.image_size
         self.crop_size = cfg.crop_size
-        self.resize_to_size = cfg.resize_to_size
+        self.resize_pre_crop = cfg.resize_pre_crop
         self.augment_fn = cfg.augment_fn
         self.num_classes = cfg.num_classes
         self.cache_dir = cfg.cache_dir
@@ -212,7 +212,7 @@ class ImageNet:
     
     def center_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Resizes a batch of images to (self.resize_to_size, self.resize_to_size) and
+        Resizes a batch of images to (self.resize_pre_crop, self.resize_pre_crop) and
         then takes central crop of (self.crop_size, self.crop_size)
 
         Args: 
@@ -223,8 +223,8 @@ class ImageNet:
             Center cropped example with batch of images and targets with same dimensions.
         """
         aug_images = tf.image.resize(
-            image, (self.resize_to_size, self.resize_to_size))
-        aug_images = tf.image.central_crop(aug_images, float(self.crop_size)/float(self.resize_to_size))
+            image, (self.resize_pre_crop, self.resize_pre_crop))
+        aug_images = tf.image.central_crop(aug_images, float(self.crop_size)/float(self.resize_pre_crop))
         return aug_images, target
 
     def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:

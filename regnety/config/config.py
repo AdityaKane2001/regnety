@@ -76,7 +76,7 @@ class PreprocessingConfig:
     batch_size: int
     image_size: int
     crop_size: int
-    resize_to_size: int
+    resize_pre_crop: int
     augment_fn: Union[str, Callable]
     num_classes: int
     cache_dir: str
@@ -90,7 +90,7 @@ def get_preprocessing_config(
     batch_size: int = 1024,
     image_size: int = 512,
     crop_size: int = 224,
-    resize_to_size: int = 320,
+    resize_pre_crop: int = 320,
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
     cache_dir: str = "gs://adityakane-train/cache/",
@@ -126,7 +126,7 @@ def get_preprocessing_config(
         batch_size=batch_size,
         image_size=image_size,
         crop_size=crop_size,
-        resize_to_size=resize_to_size,
+        resize_pre_crop=resize_pre_crop,
         augment_fn=augment_fn,
         num_classes=num_classes,
         cache_dir=cache_dir,
@@ -219,8 +219,19 @@ def get_model_config(flops: str):
             wm=2.4
         )
 
-
-def get_train_config():
+def get_train_config(
+    optimizer: str = "adamw",
+    base_lr: float = 0.001 * 8,
+    warmup_epochs: int = 5,
+    warmup_factor: float = 0.1,
+    total_epochs: int = 100,
+    weight_decay: float = 5e-5,
+    momentum: float = 0.9,
+    lr_schedule: str = "half_cos",
+    log_dir: str = "gs://adityakane-train/logs",
+    model_dir: str = "gs://adityakane-train/models",
+    cache_dir: str = "gs: // adityakane-train/cache"
+):
     """
     Getter function for training config. Config is same as in the paper
     (see link above). If ambiguous, 
@@ -233,33 +244,6 @@ def get_train_config():
         A TrainConfig dataclass instance.
     """
 
-    return TrainConfig(
-        optimizer="sgd",
-        base_lr=0.8,
-        warmup_epochs=5,
-        warmup_factor=0.1,
-        total_epochs=100,
-        weight_decay=5e-4,
-        momentum=0.9,
-        lr_schedule="half_cos",
-        log_dir="gs://adityakane-train/logs",
-        model_dir="gs://adityakane-train/models",
-        cache_dir="gs://adityakane-train/cache"
-    )
-
-def get_custom_train_config(
-    optimizer: str,
-    base_lr: float,
-    warmup_epochs: int,
-    warmup_factor: float,
-    total_epochs: int,
-    weight_decay: float,
-    momentum: float,
-    lr_schedule: str,
-    log_dir: str,
-    model_dir: str,
-    cache_dir: str
-):
     return TrainConfig(
         optimizer=optimizer,
         base_lr=base_lr,

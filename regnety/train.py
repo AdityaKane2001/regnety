@@ -12,7 +12,6 @@ from regnety.regnety.dataset.imagenet import ImageNet
 from regnety.regnety.utils import train_utils as tutil
 from regnety.regnety.config.config import (
     get_train_config,
-    get_custom_train_config,
     get_preprocessing_config,
     ALLOWED_FLOPS
 )
@@ -42,22 +41,20 @@ if flops not in ALLOWED_FLOPS:
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
-if trial:
-    train_cfg = get_custom_train_config(
-        optimizer="adamw",
-        base_lr=0.001 * strategy.num_replicas_in_sync,
-        warmup_epochs=5,
-        warmup_factor=0.1,
-        total_epochs=100,
-        weight_decay=5e-5,
-        momentum=0.9,
-        lr_schedule="half_cos",
-        log_dir="gs://adityakane-train/logs",
-        model_dir="gs://adityakane-train/models",
-        cache_dir="gs://adityakane-train/cache"
-    )
-else:
-    train_cfg = get_train_config()
+train_cfg = get_train_config(
+    optimizer="adamw",
+    base_lr=0.001 * strategy.num_replicas_in_sync,
+    warmup_epochs=5,
+    warmup_factor=0.1,
+    total_epochs=100,
+    weight_decay=5e-5,
+    momentum=0.9,
+    lr_schedule="half_cos",
+    log_dir="gs://adityakane-train/logs",
+    model_dir="gs://adityakane-train/models",
+    cache_dir="gs://adityakane-train/cache"
+)
+
 
 train_prep_cfg = get_preprocessing_config(
     tfrecs_filepath=train_tfrecs_filepath,

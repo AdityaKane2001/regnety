@@ -1,6 +1,5 @@
 from regnety.regnety.config.config import (
     get_train_config,
-    get_custom_train_config,
     get_preprocessing_config,
     ALLOWED_FLOPS
 )
@@ -35,7 +34,7 @@ train_prep_cfg = get_preprocessing_config(
     batch_size=1024,
     image_size=512,
     crop_size=224,
-    resize_to_size=224,
+    resize_pre_crop=224,
     augment_fn="default",
     num_classes=1000,
     cache_dir="gs://adityakane-train/cache/",
@@ -48,7 +47,7 @@ val_prep_cfg = get_preprocessing_config(
     batch_size=1024,
     image_size=512,
     crop_size=224,
-    resize_to_size=224,
+    resize_pre_crop=224,
     augment_fn="val",
     num_classes=1000,
     cache_dir="gs://adityakane-train/cache/",
