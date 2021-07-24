@@ -70,9 +70,9 @@ val_prep_cfg = get_preprocessing_config(
 print("Training options detected:", train_cfg)
 print("Preprocessing options detected.")
 print("Training on TFRecords: ",
-    train_prep_cfg.tfrecs_filepath[0:3], " to ",train_prep_cfg.tfrecs_filepath[-3:])
+    train_prep_cfg.tfrecs_filepath[0], " to ",train_prep_cfg.tfrecs_filepath[-1])
 print("Validating on TFRecords: ",
-    val_prep_cfg.tfrecs_filepath[0:3], " to ", val_prep_cfg.tfrecs_filepath[-3:])
+    val_prep_cfg.tfrecs_filepath[0], " to ", val_prep_cfg.tfrecs_filepath[-1])
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
@@ -84,7 +84,7 @@ now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
 wandb.init(entity="compyle", project="regnety",
-           job_type="train", name="Final200MF_"+flops.upper())
+           job_type="train", name="Final_" + date_time + "_" + flops.upper())
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
@@ -104,3 +104,6 @@ history = model.fit(
 
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, "history_%s.json" % date_time), "a+") as f:
    json.dump(str(history.history), f)
+
+model_name = str(date_time) + "_" + flops.lower() + "_final.h5"
+model.save(os.path.join(train_cfg.model_dir, model_name))
