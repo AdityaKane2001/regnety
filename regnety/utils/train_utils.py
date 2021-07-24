@@ -59,14 +59,14 @@ def get_callbacks(cfg):
     tboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=cfg.log_dir, histogram_freq=1)  # profile_batch="0,1023"
     best_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join(cfg.model_dir, "best_model_{epoch:02d}-{val_loss:.2f}.h5"),
+        filepath=os.path.join(cfg.model_dir, "best_model_{epoch:02d}-{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
         save_best_only=True)
     all_models_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(
-            cfg.model_dir, "all_model_{epoch:02d}-{val_loss:.2f}.h5"),
+            cfg.model_dir, "all_model_{epoch:02d}-{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
