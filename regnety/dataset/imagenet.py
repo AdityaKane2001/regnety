@@ -123,8 +123,8 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
 
-        filename = datetime.now().strftime("%m_%d_%Y_%Hh%Mm")
-        ds = ds.cache(os.path.join(self.cache_dir, filename))
+        # filename = datetime.now().strftime("%m_%d_%Y_%Hh%Mm")
+        # ds = ds.cache(os.path.join(self.cache_dir, filename))
         
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)

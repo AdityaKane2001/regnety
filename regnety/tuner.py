@@ -37,7 +37,7 @@ train_prep_cfg = get_preprocessing_config(
     resize_pre_crop=224,
     augment_fn="default",
     num_classes=1000,
-    cache_dir="gs://adityakane-train/cache/",
+    cache_dir="gs://ak-europe-train/cache/",
     color_jitter=False,
     scale_to_unit=True
 )
@@ -50,7 +50,7 @@ val_prep_cfg = get_preprocessing_config(
     resize_pre_crop=224,
     augment_fn="val",
     num_classes=1000,
-    cache_dir="gs://adityakane-train/cache/",
+    cache_dir="gs://ak-europe-train/cache/",
     color_jitter=False,
     scale_to_unit=True
 )
@@ -93,7 +93,7 @@ tuner = kt.BayesianOptimization(
     make_model,
     "val_accuracy",
     20,
-    directory="gs://adityakane-train/tunercache",
+    directory="gs://ak-europe-train/tunercache",
     project_name="200MF",
     distribution_strategy=tpu_strat)
 
@@ -106,5 +106,5 @@ bestHP = tuner.get_best_hyperparameters(num_trials=1)[0]
 
 print(bestHP)
 
-with tf.io.gfile.GFile(os.path.join("gs://adityakane-train/tunercache/", "bestHP_%s.json" % date_time), "a+") as f:
+with tf.io.gfile.GFile(os.path.join("gs://ak-europe-train/tunercache/", "bestHP_%s.json" % date_time), "a+") as f:
    json.dump(str(bestHP), f)

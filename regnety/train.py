@@ -28,8 +28,9 @@ flops = args.flops
 tpu_address = args.tpu_address
 tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
 tfrecs_filepath.sort()
-train_tfrecs_filepath = tfrecs_filepath[1:]
-val_tfrecs_filepath = [tfrecs_filepath[0]]
+one_percent = len(tfrecs_filepath) // 100
+train_tfrecs_filepath = tfrecs_filepath[one_percent:]
+val_tfrecs_filepath = tfrecs_filepath[:one_percent]
 trial = args.trial_run
 
 if "mf" not in flops:
@@ -50,9 +51,9 @@ train_cfg = get_train_config(
     weight_decay=5e-5,
     momentum=0.9,
     lr_schedule="half_cos",
-    log_dir="gs://adityakane-train/logs",
-    model_dir="gs://adityakane-train/models",
-    cache_dir="gs://adityakane-train/cache"
+    log_dir="gs://ak-europe-train/logs",
+    model_dir="gs://ak-europe-train/models",
+    cache_dir="gs://ak-europe-train/cache"
 )
 
 
@@ -67,7 +68,11 @@ val_prep_cfg = get_preprocessing_config(
 )
 
 print("Training options detected:", train_cfg)
-print('Preprocessing options detected:', val_prep_cfg)
+print("Preprocessing options detected.")
+print("Training on TFRecords: ",
+    train_prep_cfg.tfrecs_filepath[0:3], " to ",train_prep_cfg.tfrecs_filepath[-3:])
+print("Validating on TFRecords: ",
+    val_prep_cfg.tfrecs_filepath[0:3], " to ", val_prep_cfg.tfrecs_filepath[-3:])
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
@@ -79,7 +84,7 @@ now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
 wandb.init(entity="compyle", project="regnety",
-           job_type="train", name="AdamW_"+flops.upper())
+           job_type="train", name="Final200MF_"+flops.upper())
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),

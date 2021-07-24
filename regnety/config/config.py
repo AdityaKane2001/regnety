@@ -93,7 +93,7 @@ def get_preprocessing_config(
     resize_pre_crop: int = 320,
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
-    cache_dir: str = "gs://adityakane-train/cache/",
+    cache_dir: str = "gs://ak-europe-train/cache/",
     color_jitter: bool = False,
     scale_to_unit: bool = True,
     scale_method: str = "tf"
@@ -228,9 +228,9 @@ def get_train_config(
     weight_decay: float = 5e-5,
     momentum: float = 0.9,
     lr_schedule: str = "half_cos",
-    log_dir: str = "gs://adityakane-train/logs",
-    model_dir: str = "gs://adityakane-train/models",
-    cache_dir: str = "gs: // adityakane-train/cache"
+    log_dir: str = "gs://ak-europe-train/logs",
+    model_dir: str = "gs://ak-europe-train/models",
+    cache_dir: str = "gs: // ak-europe-train/cache"
 ):
     """
     Getter function for training config. Config is same as in the paper
