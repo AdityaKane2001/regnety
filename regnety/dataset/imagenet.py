@@ -50,9 +50,7 @@ class ImageNet:
         self.resize_pre_crop = cfg.resize_pre_crop
         self.augment_fn = cfg.augment_fn
         self.num_classes = cfg.num_classes
-        self.cache_dir = cfg.cache_dir
         self.color_jitter = cfg.color_jitter
-        self.scale_to_unit = cfg.scale_to_unit
         self.scale_method = cfg.scale_method
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
@@ -122,9 +120,6 @@ class ImageNet:
             self.decode_example, 
             num_parallel_calls = AUTO 
         )
-
-        # filename = datetime.now().strftime("%m_%d_%Y_%Hh%Mm")
-        # ds = ds.cache(os.path.join(self.cache_dir, filename))
         
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
@@ -323,12 +318,6 @@ class ImageNet:
             )
         
         
-        if self.scale_to_unit:
-            ds = ds.map(
-                self._scale_to_unit,
-                num_parallel_calls=AUTO
-            )
-
 
 
         return ds

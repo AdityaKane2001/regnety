@@ -1,3 +1,9 @@
+"""
+This script was used to get a rough set of hyperparameters by tuning them on 
+ImageNette (smaller version of ImageNet). We used those hyperparameters as a 
+starting point for our experiments on the larger ImageNet dataset.
+"""
+
 from regnety.regnety.config.config import (
     get_train_config,
     get_preprocessing_config,

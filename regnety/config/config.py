@@ -54,7 +54,6 @@ class TrainConfig:
         lr_schedule: One of "constant" or "half_cos"
         log_dir: Path to store logs
         model_dir: Path to store model checkpoints
-        cache_dir:Path to cache parsed dataset
     """
 
     optimizer: str
@@ -67,7 +66,6 @@ class TrainConfig:
     lr_schedule: str
     log_dir: str
     model_dir: str
-    cache_dir: str
 
 
 @dataclass
@@ -79,7 +77,6 @@ class PreprocessingConfig:
     resize_pre_crop: int
     augment_fn: Union[str, Callable]
     num_classes: int
-    cache_dir: str
     color_jitter: bool
     scale_to_unit: bool
     scale_method: str
@@ -93,7 +90,6 @@ def get_preprocessing_config(
     resize_pre_crop: int = 320,
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
-    cache_dir: str = "gs://ak-europe-train/cache/",
     color_jitter: bool = False,
     scale_to_unit: bool = True,
     scale_method: str = "tf"
@@ -111,7 +107,6 @@ def get_preprocessing_config(
         resize_pre_crop: size to resize to before cropping
         augment_fn: function to apply to dataset after loading raw TFrecords.
         num_classes: number of classes.
-        cache_dir: Directory to use for TF cache. 
         color_jitter: If True, color_jitter augmentation is applied.
         scale_to_unit: Whether the images should be scaled using `scale_method`.
         scale_method: Use `tf` if images must be in [0,1]. Use `torch` if images must
@@ -129,7 +124,6 @@ def get_preprocessing_config(
         resize_pre_crop=resize_pre_crop,
         augment_fn=augment_fn,
         num_classes=num_classes,
-        cache_dir=cache_dir,
         color_jitter=color_jitter,
         scale_to_unit=scale_to_unit,
         scale_method=scale_method
@@ -230,7 +224,6 @@ def get_train_config(
     lr_schedule: str = "half_cos",
     log_dir: str = "gs://ak-europe-train/logs",
     model_dir: str = "gs://ak-europe-train/models",
-    cache_dir: str = "gs: // ak-europe-train/cache"
 ):
     """
     Getter function for training config. Config is same as in the paper
@@ -255,5 +248,4 @@ def get_train_config(
         lr_schedule=lr_schedule,
         log_dir=log_dir,
         model_dir=model_dir,
-        cache_dir=cache_dir
     )

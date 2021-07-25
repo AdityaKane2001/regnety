@@ -2,8 +2,8 @@ import tensorflow as tf
 import argparse
 import os
 import json
-import regnety
 import wandb
+import logging
 
 from datetime import datetime
 from wandb.keras import WandbCallback
@@ -27,11 +27,15 @@ args = parser.parse_args()
 flops = args.flops
 tpu_address = args.tpu_address
 tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
+
 tfrecs_filepath.sort()
 one_percent = len(tfrecs_filepath) // 100
 train_tfrecs_filepath = tfrecs_filepath[one_percent:]
 val_tfrecs_filepath = tfrecs_filepath[:one_percent]
 trial = args.trial_run
+
+logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
 
 if "mf" not in flops:
     flops += "mf"
@@ -53,7 +57,6 @@ train_cfg = get_train_config(
     lr_schedule="half_cos",
     log_dir="gs://ak-europe-train/logs",
     model_dir="gs://ak-europe-train/models",
-    cache_dir="gs://ak-europe-train/cache"
 )
 
 
@@ -67,12 +70,13 @@ val_prep_cfg = get_preprocessing_config(
     augment_fn="val"
 )
 
-print("Training options detected:", train_cfg)
-print("Preprocessing options detected.")
-print("Training on TFRecords: ",
-    train_prep_cfg.tfrecs_filepath[0], " to ",train_prep_cfg.tfrecs_filepath[-1])
-print("Validating on TFRecords: ",
-    val_prep_cfg.tfrecs_filepath[0], " to ", val_prep_cfg.tfrecs_filepath[-1])
+
+logging.info(f"Training options detected: {train_cfg}")
+logging.info("Preprocessing options detected.")
+logging.info(
+    f"Training on TFRecords: {train_prep_cfg.tfrecs_filepath[0]} to {train_prep_cfg.tfrecs_filepath[-1]}")
+logging.info(
+    f"Validating on TFRecords: {val_prep_cfg.tfrecs_filepath[0]} to {val_prep_cfg.tfrecs_filepath[-1]}")
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)

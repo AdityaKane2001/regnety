@@ -3,9 +3,12 @@ import tensorflow_addons as tfa
 import math
 import os
 import regnety
+import logging
 
 PI = math.pi
 
+logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
 
 def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
     if cfg.optimizer == "sgd":
@@ -108,17 +111,17 @@ def connect_to_tpu(tpu_address: str = None):
             tf.config.experimental_connect_to_cluster(cluster_resolver)
         tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
         strategy = tf.distribute.TPUStrategy(cluster_resolver)
-        print("Running on TPU ", cluster_resolver.master())
-        print("REPLICAS: ", strategy.num_replicas_in_sync)
+        logging.info(f"Running on TPU {cluster_resolver.master()}")
+        logging.info(f"REPLICAS: {strategy.num_replicas_in_sync}")
         return cluster_resolver, strategy
     else:                           # When using Colab or Kaggle
         try:
             cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver.connect()
             strategy = tf.distribute.TPUStrategy(cluster_resolver)
-            print("Running on TPU ", cluster_resolver.master())
-            print("REPLICAS: ", strategy.num_replicas_in_sync)
+            logging.info(f"Running on TPU {cluster_resolver.master()}")
+            logging.info(f"REPLICAS: {strategy.num_replicas_in_sync}")
             return cluster_resolver, strategy
         except:
-            print("WARNING: No TPU detected.")
+            logging.warning("No TPU detected.")
             mirrored_strategy = tf.distribute.MirroredStrategy()
             return None, mirrored_strategy
