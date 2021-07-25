@@ -4,11 +4,12 @@ import math
 import os
 import regnety
 import logging
-
+from wandb.keras import WandbCallback
 PI = math.pi
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
-    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
+                    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
+
 
 def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
     if cfg.optimizer == "sgd":
@@ -42,13 +43,13 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
             # Taken from pycls/pycls/core/optimizer.py, since not clear from paper.
             if epoch < cfg.warmup_epochs:
                 new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
-                    cfg.total_epochs)) * cfg.base_lr
+                                                  cfg.total_epochs)) * cfg.base_lr
                 alpha = epoch / cfg.warmup_epochs
                 warmup_factor = cfg.warmup_factor * (1. - alpha) + alpha
                 return new_lr * warmup_factor
             else:
                 new_lr = 0.5 * (1.0 + tf.math.cos(PI * epoch /
-                    cfg.total_epochs)) * cfg.base_lr
+                                                  cfg.total_epochs)) * cfg.base_lr
                 return new_lr
 
         return half_cos_schedule
@@ -58,19 +59,20 @@ def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
 
 
 def get_callbacks(cfg, timestr):
-    lr_callback = tf.keras.callbacks.LearningRateScheduler(get_train_schedule(cfg))
+    lr_callback = tf.keras.callbacks.LearningRateScheduler(
+        get_train_schedule(cfg))
     tboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=cfg.log_dir, histogram_freq=1)  # profile_batch="0,1023"
+        log_dir=os.path.join(cfg.log_dir, timestr), histogram_freq=1)  # profile_batch="0,1023"
     best_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(
-            cfg.model_dir, timestr, "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
+            cfg.model_dir, timestr, "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}", "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
         save_best_only=True)
     all_models_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(
-            cfg.model_dir, timestr, "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
+            cfg.model_dir, timestr, "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}",  "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
@@ -80,7 +82,8 @@ def get_callbacks(cfg, timestr):
         lr_callback,
         tboard_callback,
         best_model_checkpoint_callback,
-        all_models_checkpoint_callback
+        all_models_checkpoint_callback,
+        WandbCallback()
     ]
 
 
@@ -103,6 +106,7 @@ def make_model(flops, train_cfg):
     )
 
     return model
+
 
 def connect_to_tpu(tpu_address: str = None):
     if tpu_address is not None:  # When using GCP

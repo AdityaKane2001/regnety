@@ -20,8 +20,10 @@ from regnety.regnety.config.config import (
 
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
-parser.add_argument("-taddr","--tpu_address", type=str, help="Network address of TPU clsuter",default=None)
-parser.add_argument("-tfp","--tfrecs_path_pattern",type=str,help="GCS bucket path pattern for tfrecords")
+parser.add_argument("-taddr", "--tpu_address", type=str,
+                    help="Network address of TPU clsuter", default=None)
+parser.add_argument("-tfp", "--tfrecs_path_pattern", type=str,
+                    help="GCS bucket path pattern for tfrecords")
 parser.add_argument("-trial", "--trial_run", action="store_true")
 
 args = parser.parse_args()
@@ -36,14 +38,14 @@ val_tfrecs_filepath = tfrecs_filepath[:one_percent]
 trial = args.trial_run
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
-    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
+                    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
 
 if "mf" not in flops:
     flops += "mf"
 
 if flops not in ALLOWED_FLOPS:
-    raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS, 
-        flops.rstrip("mf")))
+    raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS,
+                                                                flops.rstrip("mf")))
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
@@ -92,13 +94,15 @@ wandb.init(entity="compyle", project="regnety",
            job_type="train", name="Final_" + date_time + "_" + flops.upper())
 
 trial_callbacks = [
-    tf.keras.callbacks.LearningRateScheduler(tutil.get_train_schedule(train_cfg)),
+    tf.keras.callbacks.LearningRateScheduler(
+        tutil.get_train_schedule(train_cfg)),
     tf.keras.callbacks.TensorBoard(
         log_dir=os.path.join(train_cfg.log_dir, str(date_time)), histogram_freq=1),  # profile_batch="0,1023"
     WandbCallback()
 ]
 
-callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg, date_time)  
+callbacks = trial_callbacks if trial else tutil.get_callbacks(
+    train_cfg, date_time)
 
 history = model.fit(
     train_ds,
