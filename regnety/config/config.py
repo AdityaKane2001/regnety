@@ -19,7 +19,7 @@ class RegNetYConfig:
         widths: List of  widths (number of channels) after every stage
         group_width: Integer denoting groups in every convolution layer
         bottleneck_ratio: Integer specifying bottleneck ratio
-        SE_ratio: Float denoting squeeze and excite ratio
+        se_ratio: Float denoting squeeze and excite ratio
         wa: Integer, slope used in linear parameterization
         w0: Integer, inital value used in linear parameterization
         wm: Float, quantization parameter
@@ -32,7 +32,7 @@ class RegNetYConfig:
     widths: List[int]
     group_width: int
     bottleneck_ratio: int
-    SE_ratio: float
+    se_ratio: float
     wa: int
     w0: int
     wm: float
@@ -78,8 +78,6 @@ class PreprocessingConfig:
     augment_fn: Union[str, Callable]
     num_classes: int
     color_jitter: bool
-    scale_to_unit: bool
-    scale_method: str
 
 
 def get_preprocessing_config(
@@ -91,8 +89,6 @@ def get_preprocessing_config(
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
     color_jitter: bool = False,
-    scale_to_unit: bool = True,
-    scale_method: str = "tf"
 ):
 
     """
@@ -108,9 +104,6 @@ def get_preprocessing_config(
         augment_fn: function to apply to dataset after loading raw TFrecords.
         num_classes: number of classes.
         color_jitter: If True, color_jitter augmentation is applied.
-        scale_to_unit: Whether the images should be scaled using `scale_method`.
-        scale_method: Use `tf` if images must be in [0,1]. Use `torch` if images must
-            be in [-1,1]
     
     Returns:
         A PreprocessingConfig dataclass instance with all attributes
@@ -125,8 +118,6 @@ def get_preprocessing_config(
         augment_fn=augment_fn,
         num_classes=num_classes,
         color_jitter=color_jitter,
-        scale_to_unit=scale_to_unit,
-        scale_method=scale_method
     )
 
 
@@ -162,7 +153,7 @@ def get_model_config(flops: str):
             widths=[24, 56, 152, 368],
             group_width=8,
             bottleneck_ratio=1,
-            SE_ratio=0.25,
+            se_ratio=0.25,
             wa=36,
             w0=24,
             wm=2.5
@@ -177,7 +168,7 @@ def get_model_config(flops: str):
             widths=[48, 104, 208, 440],
             group_width=8,
             bottleneck_ratio=1,
-            SE_ratio=0.25,
+            se_ratio=0.25,
             wa=28,
             w0=48,
             wm=2.1
@@ -192,7 +183,7 @@ def get_model_config(flops: str):
             widths=[48, 112, 256, 608],
             group_width=16,
             bottleneck_ratio=1,
-            SE_ratio=0.25,
+            se_ratio=0.25,
             wa=33,
             w0=48,
             wm=2.3
@@ -207,7 +198,7 @@ def get_model_config(flops: str):
             widths=[64, 128, 320, 768],
             group_width=16,
             bottleneck_ratio=1,
-            SE_ratio=0.25,
+            se_ratio=0.25,
             wa=39,
             w0=56,
             wm=2.4

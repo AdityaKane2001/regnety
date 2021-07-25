@@ -51,7 +51,6 @@ class ImageNet:
         self.augment_fn = cfg.augment_fn
         self.num_classes = cfg.num_classes
         self.color_jitter = cfg.color_jitter
-        self.scale_method = cfg.scale_method
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")

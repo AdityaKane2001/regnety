@@ -7,7 +7,7 @@ def main():
     parser.add_argument("-o", "--odir", type=str,
         help="Output directory for TFRecords.")
     parser.add_argument("-d", "--data_dir", type=str,
-        help="Input data directory. Must have ImageNet-like directory structure as shown in https://gist.github.com/AdityaKane2001/490b8c94c05538dec690513022195e91")
+        help="Input data directory. Must have ImageNet-like directory structure as shown in https://git.io/J4mpG")
     parser.add_argument("-fpr", "--file_prefix", type=str,
         help="File prefix to add to all files.")
     parser.add_argument("-synpath","--synset_filepath", type=str, default="",
