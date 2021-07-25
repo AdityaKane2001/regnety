@@ -223,27 +223,6 @@ class ImageNet:
         aug_images = tf.image.central_crop(aug_images, float(self.crop_size)/float(self.resize_pre_crop))
         return aug_images, target
 
-    def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """
-        Divides the pixel values of the image by 255. 
-
-        Args: 
-            image: Batch of images to perform center crop on.
-            target: Target tensor.
-
-        Returns:
-            Scaled example with batch of images and targets with same dimensions.
-        """
-        if self.scale_method == "torch":
-            aug_images = tf.cast(image, tf.float32)
-            aug_images = aug_images / 127.5
-            aug_images = aug_images - 1.
-            return aug_images, target
-        
-        else:
-            aug_images = tf.cast(image, tf.float32)
-            aug_images = aug_images / 255.
-            return aug_images, target
             
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
