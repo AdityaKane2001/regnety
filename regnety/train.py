@@ -4,6 +4,7 @@ import os
 import json
 import wandb
 import logging
+import math
 
 from datetime import datetime
 from wandb.keras import WandbCallback
@@ -29,7 +30,7 @@ tpu_address = args.tpu_address
 tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
 
 tfrecs_filepath.sort()
-one_percent = len(tfrecs_filepath) // 100
+one_percent = math.ceil(len(tfrecs_filepath) / 100)
 train_tfrecs_filepath = tfrecs_filepath[one_percent:]
 val_tfrecs_filepath = tfrecs_filepath[:one_percent]
 trial = args.trial_run
