@@ -98,7 +98,7 @@ trial_callbacks = [
     WandbCallback()
 ]
 
-callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg)  
+callbacks = trial_callbacks if trial else tutil.get_callbacks(train_cfg, date_time)  
 
 history = model.fit(
     train_ds,
