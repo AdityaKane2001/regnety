@@ -230,18 +230,19 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def _mixup(self, entry1: Tuple,
-               entry2: Tuple) -> Tuple:
+    def _mixup(self, 
+        entry1: Tuple,
+        entry2: Tuple) -> Tuple:
         """
         Function to apply mixup augmentation. To be applied after 
         one hot encoding and before batching. 
         
         Args:
-            entry1: Entry from first dataset. Should be one hot encoded.
-            ds2: Entry from second dataset. Must be one hot encoded.
+            entry1: Entry from first dataset. Should be one hot encoded and batched.
+            entry2: Entry from second dataset. Must be one hot encoded and batched.
         
         Returns:
-            Dict with same attributes as in the entries. 
+            Tuple with same structure as the entries. 
         """
         image1, label1 = entry1
         image2, label2 = entry2
@@ -302,6 +303,7 @@ class ImageNet:
                 self.random_crop,
                 num_parallel_calls=AUTO
             )
+
             if self.mixup:
                 ds1 = ds.shuffle(10)
 

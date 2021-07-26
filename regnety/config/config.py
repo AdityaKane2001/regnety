@@ -7,6 +7,18 @@ ALLOWED_FLOPS = ('200mf', '400mf', '600mf', '800mf')
 
 
 @dataclass
+class PreprocessingConfig:
+    tfrecs_filepath: List[str]
+    batch_size: int
+    image_size: int
+    crop_size: int
+    resize_pre_crop: int
+    augment_fn: Union[str, Callable]
+    num_classes: int
+    color_jitter: bool
+    mixup: bool
+
+@dataclass
 class RegNetYConfig:
     """
     Dataclass for architecture configuration for RegNetY.
@@ -68,17 +80,6 @@ class TrainConfig:
     model_dir: str
 
 
-@dataclass
-class PreprocessingConfig:
-    tfrecs_filepath: List[str]
-    batch_size: int
-    image_size: int
-    crop_size: int
-    resize_pre_crop: int
-    augment_fn: Union[str, Callable]
-    num_classes: int
-    color_jitter: bool
-    mixup: bool
 
 
 def get_preprocessing_config(
@@ -106,6 +107,7 @@ def get_preprocessing_config(
         augment_fn: function to apply to dataset after loading raw TFrecords.
         num_classes: number of classes.
         color_jitter: If True, color_jitter augmentation is applied.
+        mixup: If True, mixup augmentation is applied
     
     Returns:
         A PreprocessingConfig dataclass instance with all attributes
@@ -225,7 +227,20 @@ def get_train_config(
     https://github.com/facebookresearch/pycls/blob/master/pycls/core/config.py  
     is assumed to be source of truth.
 
-    Args: None
+    Args:
+        optimizer: Optimizer to be used in model. Can be
+            one of `sgd`, `adam`, `adamw`
+        base_lr: Base LR to be used for training. This will be the 
+            peak LR reached after warmup
+        warmup_epochs: Warmup schedule followed for these many epochs
+        warmup_factor: Linear factor for warmup schedule
+        total_epochs: Total epochs to train the model for
+        weight_decay: Weight decay factor for sgd and adamw
+        momentum: Momemtum for optimizers
+        lr_schedule: LR schedule to be used for training.
+            Can be one of `constant` and `half_cos`
+        log_dir: Directory to store logs
+        model_dir: Directory to store model checkpoints 
 
     Returns:
         A TrainConfig dataclass instance.

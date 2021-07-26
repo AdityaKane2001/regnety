@@ -115,6 +115,3 @@ history = model.fit(
 
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, "history_%s.json" % date_time), "a+") as f:
    json.dump(str(history.history), f)
-
-model_name = str(date_time) + "_" + flops.lower() + "_final.h5"
-model.save(os.path.join(train_cfg.model_dir, model_name))
