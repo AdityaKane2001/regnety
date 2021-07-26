@@ -63,12 +63,14 @@ train_cfg = get_train_config(
 
 train_prep_cfg = get_preprocessing_config(
     tfrecs_filepath=train_tfrecs_filepath,
-    augment_fn="default"
+    augment_fn="default",
+    mixup=True
 )
 
 val_prep_cfg = get_preprocessing_config(
     tfrecs_filepath=val_tfrecs_filepath,
-    augment_fn="val"
+    augment_fn="val",
+    mixup=False
 )
 
 

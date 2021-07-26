@@ -2,6 +2,9 @@ import math
 import tensorflow as tf
 import tensorflow_addons as tfa
 import os
+import tensorflow_probability as tfp
+tfd = tfp.distributions
+
 from datetime import datetime
 
 from typing import Union, Callable, Tuple, List, Type
@@ -51,6 +54,7 @@ class ImageNet:
         self.augment_fn = cfg.augment_fn
         self.num_classes = cfg.num_classes
         self.color_jitter = cfg.color_jitter
+        self.mixup = cfg.mixup
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
@@ -100,7 +104,33 @@ class ImageNet:
             "synset": synset,
         }
 
+    
+    def mixup(self, entry1: dict,
+                    entry2: dict) -> dict:
+        """
+        Function to apply mixup augmentation. To be applied after 
+        one hot encoding and before batching. 
+        
+        Args:
+            entry1: Entry from first dataset. Should be one hot encoded.
+            ds2: Entry from second dataset. Must be one hot encoded.
+        
+        Returns:
+            Dict with same attributes as in the entries. 
+        """
+        image1,label1 = entry1
+        image2,label2 = entry2
 
+        alpha = [0.2]
+        dist = tfd.Beta(alpha, alpha)
+        l = dist.sample(1)[0][0]
+
+        img = l*image1+(1-l)*image2
+        lab = l*label1+(1-l)*label2
+
+        return img, lab
+        
+    
     def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
 
@@ -120,7 +150,7 @@ class ImageNet:
             num_parallel_calls = AUTO 
         )
         
-        ds = ds.batch(self.batch_size, drop_remainder=True)
+        
         ds = ds.prefetch(AUTO)
         return ds
         
@@ -236,7 +266,9 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-
+    
+    
+        
     def make_dataset(self) -> Type[tf.data.Dataset]:
         """
         Function to apply all preprocessing and augmentations on dataset using
@@ -252,31 +284,60 @@ class ImageNet:
             tf.data.Dataset instance having the final format as follows:
             (image, target)
         """
-        ds = self._read_tfrecs()
-        
-        
-        ds = ds.map(
-            self._one_hot_encode_example,
-            num_parallel_calls=AUTO
-        )
+        if self.mixup:
+            ds1 = self._read_tfrecs()
+
+            ds1 = ds1.map(
+                self._one_hot_encode_example,
+                num_parallel_calls=AUTO
+            )
+
+            ds1 = ds1.shuffle(self.batch_size * 16)
 
 
+            ds2 = self._read_tfrecs()
+
+
+            ds2 = ds.map(
+                self._one_hot_encode_example,
+                num_parallel_calls=AUTO
+            )
+
+
+            ds = tf.data.Dataset.zip((ds1, ds2))
+
+            ds = ds.map(
+                self.mixup,
+                num_parallel_calls=AUTO
+            )
+        
+        else:
+            ds = self._read_tfrecs()
+
+
+            ds = ds.map(
+                self._one_hot_encode_example,
+                num_parallel_calls=AUTO
+            )
+
+        ds = ds.batch(self.batch_size, drop_remainder=True)
+        
         if self.default_augment:
-            if self.color_jitter:
-                ds = ds.map(
-                    self.color_jitter,
-                    num_parallel_calls=AUTO
-                )
+#             if self.color_jitter:
+#                 ds = ds.map(
+#                     self.color_jitter,
+#                     num_parallel_calls=AUTO
+#                 )
             
-            ds = ds.map(
-                self.random_flip,
-                num_parallel_calls=AUTO
-            )
+#             ds = ds.map(
+#                 self.random_flip,
+#                 num_parallel_calls=AUTO
+#             )
 
-            ds = ds.map(
-                self.random_rotate,
-                num_parallel_calls=AUTO
-            )
+#             ds = ds.map(
+#                 self.random_rotate,
+#                 num_parallel_calls=AUTO
+#             )
 
             ds =  ds.map(
                 self.random_crop,

@@ -61,9 +61,10 @@ def RegNetY(flops: str = "", input_shape: Union[List, Tuple] = None) -> tf.keras
     else: 
         userdef_input_shape = input_shape
     
-    if any([i < 224 for i in userdef_input_shape[:-1]]):
-        raise ValueError('All non-channel dimensions in `input_shape`'
-                            ' must be greater than or equal to 224.')
+    if userdef_input_shape[0] is not None:
+        if any([i < 224 for i in userdef_input_shape[:-1]]):
+            raise ValueError('All non-channel dimensions in `input_shape`'
+                                ' must be greater than or equal to 224.')
 
     try:
         assert len(userdef_input_shape) == 3

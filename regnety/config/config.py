@@ -78,6 +78,7 @@ class PreprocessingConfig:
     augment_fn: Union[str, Callable]
     num_classes: int
     color_jitter: bool
+    mixup: bool
 
 
 def get_preprocessing_config(
@@ -89,6 +90,7 @@ def get_preprocessing_config(
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
     color_jitter: bool = False,
+    mixup: bool = True
 ):
 
     """
