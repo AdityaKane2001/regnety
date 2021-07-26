@@ -120,6 +120,7 @@ def get_preprocessing_config(
         augment_fn=augment_fn,
         num_classes=num_classes,
         color_jitter=color_jitter,
+        mixup=mixup
     )
 
 
