@@ -65,14 +65,14 @@ def get_callbacks(cfg, timestr):
         log_dir=os.path.join(cfg.log_dir, timestr), histogram_freq=1)  # profile_batch="0,1023"
     best_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(
-            cfg.model_dir, timestr, "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}", "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
+            cfg.model_dir, timestr, "best_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
         save_best_only=True)
     all_models_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(
-            cfg.model_dir, timestr, "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}",  "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
+            cfg.model_dir, timestr, "all_model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}"),
         save_weights_only=True,
         monitor="val_accuracy",
         mode="max",
