@@ -9,7 +9,9 @@ import os
 
 
 def is_png(filename):
-    return tf.strings.regex_full_match(filename, "n02105855_2933.JPEG")
+    return tf.strings.regex_full_match(
+        tf.strings.split(filename, sep="/")[-1], "n02105855_2933.JPEG"
+    )
 
 
 def is_cmyk(filename):
