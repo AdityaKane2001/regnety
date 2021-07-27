@@ -7,14 +7,20 @@ from regnety.regnety.utils import train_utils as tutil
 from regnety.regnety.config.config import (
     get_train_config,
     get_preprocessing_config,
-    ALLOWED_FLOPS
+    ALLOWED_FLOPS,
 )
 
 
 parser = argparse.ArgumentParser(description="Evaluate trained models")
-parser.add_argument("-path", "--model_path", type=str, help="Path to saved models directory")
-parser.add_argument("-tfp", "--tfrecs_path_pattern", type=str,
-                    help="GCS bucket path pattern for tfrecords")
+parser.add_argument(
+    "-path", "--model_path", type=str, help="Path to saved models directory"
+)
+parser.add_argument(
+    "-tfp",
+    "--tfrecs_path_pattern",
+    type=str,
+    help="GCS bucket path pattern for tfrecords",
+)
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 args = parser.parse_args()
 
@@ -25,21 +31,25 @@ if "mf" not in flops:
     flops += "mf"
 
 if flops not in ALLOWED_FLOPS:
-    raise ValueError("Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS,
-                                                                flops.rstrip("mf")))
+    raise ValueError(
+        "Flops must be one of %s. Received: %s" % (ALLOWED_FLOPS, flops.rstrip("mf"))
+    )
 
 
-logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
-                    datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s : %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S",
+    level=logging.INFO,
+)
 
 
 eval_prep_cfg = get_preprocessing_config(
-    tfrecs_filepath=tfrecs_filepath,
-    augment_fn="val"
+    tfrecs_filepath=tfrecs_filepath, augment_fn="val"
 )
 logging.info("Preprocessing options detected.")
 logging.info(
-    f"Validating on TFRecords: {eval_prep_cfg.tfrecs_filepath[0]} to {eval_prep_cfg.tfrecs_filepath[-1]}")
+    f"Validating on TFRecords: {eval_prep_cfg.tfrecs_filepath[0]} to {eval_prep_cfg.tfrecs_filepath[-1]}"
+)
 
 cluster_resolver, strategy = tutil.connect_to_tpu()
 

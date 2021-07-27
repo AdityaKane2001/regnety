@@ -10,16 +10,15 @@ import math
 from regnety.regnety.utils.image_utils import *
 from regnety.regnety.utils.beam_utils import *
 from typing import Tuple, List
-from collections import namedtuple 
+from collections import namedtuple
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
+
 
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
-        value = (
-            value.numpy()
-        )  # BytesList won't unpack a string from an EagerTensor.
+        value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
@@ -49,6 +48,7 @@ def _get_default_validation_labels_path() -> str:
     regnety_path = "/".join(path_segments[:-2])
     return os.path.join(regnety_path, "config", "valid_labels.txt")
 
+
 def _get_synset_labels(filepath: str) -> dict:
     """
     Gets synsets from json file in a dict
@@ -76,13 +76,9 @@ def _get_synset_labels(filepath: str) -> dict:
 def _get_validation_info(
     data_dir: str,
     synset_filepath: str,
-) -> Tuple[
-    List[str],
-    List[int],
-    List[str]
-]:
+) -> Tuple[List[str], List[int], List[str]]:
     """
-    Returns lists of all files, their integer labels and their synsets. 
+    Returns lists of all files, their integer labels and their synsets.
     Assumes directory structure like in ImageNet validation images.
     Args:
         data_dir: directory containing ImageNet validation-style directory
@@ -97,11 +93,11 @@ def _get_validation_info(
     """
     all_images = tf.io.gfile.glob(os.path.join(data_dir, "*.JPEG"))
     all_images.sort()
-    with open(_get_default_validation_labels_path(),"r") as f:
+    with open(_get_default_validation_labels_path(), "r") as f:
         all_lines = f.readlines()
-        all_labels_int = list(map(
-            lambda line: int(line.split()[1].strip("\n")),
-        all_lines) )
+        all_labels_int = list(
+            map(lambda line: int(line.split()[1].strip("\n")), all_lines)
+        )
     with open(synset_filepath, "r") as f:
         labels_dict = json.load(f)
     print(labels_dict)
@@ -111,21 +107,15 @@ def _get_validation_info(
 
 
 def _get_files(
-    data_dir: str,
-    synset_filepath: str,
-    shuffle: bool = True,
-    val:bool = False) -> Tuple[
-        List[str],
-        List[int],
-        List[str]
-    ]:
+    data_dir: str, synset_filepath: str, shuffle: bool = True, val: bool = False
+) -> Tuple[List[str], List[int], List[str]]:
     """
-    Returns lists of all files, their integer labels and their synsets. 
+    Returns lists of all files, their integer labels and their synsets.
     Assumes directory structure like in ImageNet training images.
     Args:
         data_dir: directory containing ImageNet train-style directory
-            structure (synsets ID as directory names, images inside) 
-            if val = False 
+            structure (synsets ID as directory names, images inside)
+            if val = False
         synset_filepath: path to synsets json file
         shuffle: True if data needs to be shuffled
 
@@ -145,13 +135,12 @@ def _get_files(
     all_synsets = [os.path.basename(os.path.dirname(f)) for f in all_images]
 
     all_indexes = list(range(len(all_images)))
-    
+
     if shuffle and not val:
         random.shuffle(all_indexes)
 
     all_images = [all_images[i] for i in all_indexes]
     all_synsets = [all_synsets[i][1:] + "-n" for i in all_indexes]
-
 
     all_labels_int = [labels_dict[i][0] for i in all_synsets]
     all_synsets = [labels_dict[i][1] for i in all_synsets]
@@ -183,8 +172,8 @@ def _make_image(filepath: str) -> Tuple[str, int, int]:
 
     if not is_rgb(image_tensor):
         image_tensor = tf.image.grayscale_to_rgb(image_tensor)
-  
-    image_tensor = tf.cast(tf.image.resize(image_tensor, (512,512)), tf.uint8)
+
+    image_tensor = tf.cast(tf.image.resize(image_tensor, (512, 512)), tf.uint8)
 
     image_str = tf.io.encode_jpeg(image_tensor)
 
@@ -194,12 +183,8 @@ def _make_image(filepath: str) -> Tuple[str, int, int]:
 
 
 def _make_example(
-        image_str: bytes,
-        height: int,
-        width: int, 
-        filepath: str, 
-        label: int, 
-        synset: str) -> tf.train.Example:
+    image_str: bytes, height: int, width: int, filepath: str, label: int, synset: str
+) -> tf.train.Example:
     """
     Makes a single example from arguments
 
@@ -252,7 +237,7 @@ def _make_single_tfrecord(
     chunk_files: List[str],
     chunk_synsets: List[str],
     chunk_labels: List[int],
-    output_filepath: str
+    output_filepath: str,
 ):
 
     """
@@ -290,7 +275,7 @@ def make_tfrecs(
     batch_size: int = 1024,
     logging_frequency: int = 1,
     shuffle: bool = True,
-    val: bool = False
+    val: bool = False,
 ):
     """
     Makes TFRecords and stores them in output_dir. Each
@@ -302,7 +287,7 @@ def make_tfrecs(
             eg.: home/imagenet/train
         output_dir: Directory to store TFRecords, eg: home/imagenet_tfrecs
         file_prefix: prefix to be added tfrecords files
-            eg.: if file_prefix = "train" then 
+            eg.: if file_prefix = "train" then
             all files look like: `train_0000_of_<num_shards>`
         synset_filepath: path to synsets json file
         batch_size: batch size of dataset. Each TFRecords, except the last one
@@ -312,13 +297,13 @@ def make_tfrecs(
         shuffle: True if dataset needs to be shuffled
     Returns None
     """
-    
+
     if "" in (dataset_base_dir, output_dir, file_prefix):
         raise ValueError("One or more arguments is not specified.")
 
     if not os.path.exists(dataset_base_dir):
         raise ValueError("Dataset path does not exist")
-    
+
     if synset_filepath is "":
         synpath = _get_default_synset_path()
     else:
@@ -326,10 +311,11 @@ def make_tfrecs(
 
     print("Synsets filepath: ", synpath)
 
-    images, labels, synsets = _get_files(dataset_base_dir, synpath, 
-        shuffle = shuffle, val = val)
+    images, labels, synsets = _get_files(
+        dataset_base_dir, synpath, shuffle=shuffle, val=val
+    )
 
-    print("Total images: ",len(images))
+    print("Total images: ", len(images))
 
     num_shards = int(math.ceil(len(images) / batch_size))
 
@@ -347,20 +333,18 @@ def make_tfrecs(
             file_prefix + "_%.4d_of_%.4d.tfrecord" % (shard, num_shards),
         )
 
-        _make_single_tfrecord(
-            chunk_files, chunk_synsets, chunk_labels, output_filepath
-        )
+        _make_single_tfrecord(chunk_files, chunk_synsets, chunk_labels, output_filepath)
     print("All shards written successfully!")
 
 
 def make_tfrecs_beam(
-   dataset_base_dir: str = "",
+    dataset_base_dir: str = "",
     output_dir: str = "",
     file_prefix: str = "",
     synset_filepath: str = "",
     batch_size: int = 1024,
     shuffle: bool = True,
-    val: bool = False 
+    val: bool = False,
 ):
     """
     Makes TFRecords and stores them in output_dir using Apache Beam.
@@ -372,7 +356,7 @@ def make_tfrecs_beam(
             eg.: home/imagenet/train
         output_dir: Directory to store TFRecords, eg: home/imagenet_tfrecs
         file_prefix: prefix to be added tfrecords files
-            eg.: if file_prefix = "train" then 
+            eg.: if file_prefix = "train" then
             all files look like: `train_0000_of_<num_shards>`
         synset_filepath: path to synsets json file
         batch_size: batch size of dataset. Each TFRecords, except the last one
@@ -386,42 +370,40 @@ def make_tfrecs_beam(
 
     if not os.path.exists(dataset_base_dir):
         raise ValueError("Dataset path does not exist")
-    
-    
+
     if synset_filepath is "":
         synpath = _get_default_synset_path()
     else:
         synpath = synset_filepath
 
-    images, labels, synsets = _get_files(dataset_base_dir, synpath, 
-        shuffle = shuffle, val = val)
+    images, labels, synsets = _get_files(
+        dataset_base_dir, synpath, shuffle=shuffle, val=val
+    )
 
-    print("Total images: ",len(images))
+    print("Total images: ", len(images))
 
     num_shards = int(math.ceil(len(images) / batch_size))
-    
-    final_list = [
-        (images[i], labels[i], synsets[i]) for i in range(len(images))
-    ]
+
+    final_list = [(images[i], labels[i], synsets[i]) for i in range(len(images))]
     args_ = {
-        "jobname" : "Make TFRecords",
-        "runner" : "DirectRunner",
-        "num_shards" : num_shards,
+        "jobname": "Make TFRecords",
+        "runner": "DirectRunner",
+        "num_shards": num_shards,
         "prefix": file_prefix,
         "output_dir": output_dir,
-        "file_name_suffix": ".tfrecord"
+        "file_name_suffix": ".tfrecord",
     }
 
     options = beam.options.pipeline_options.PipelineOptions(**args_)
     args = namedtuple("options", args_.keys())(*args_.values())
 
     args_ = {
-        "jobname" : "Make TFRecords",
-        "runner" : "DirectRunner",
-        "num_shards" : num_shards,
+        "jobname": "Make TFRecords",
+        "runner": "DirectRunner",
+        "num_shards": num_shards,
         "prefix": file_prefix,
         "output_dir": output_dir,
-        "file_name_suffix": ".tfrecord"
+        "file_name_suffix": ".tfrecord",
     }
     options = beam.options.pipeline_options.PipelineOptions(**args_)
     args = namedtuple("options", args_.keys())(*args_.values())
@@ -429,23 +411,22 @@ def make_tfrecs_beam(
     make_img_dofunc = MakeImageDoFn()
     make_example_dofunc = MakeExampleDoFn()
     batch_examples_transform = beam.transforms.util.BatchElements(
-        min_batch_size=batch_size, max_batch_size=batch_size,
+        min_batch_size=batch_size,
+        max_batch_size=batch_size,
     )
 
-
     write_to_tf_record = beam.io.tfrecordio.WriteToTFRecord(
-      file_path_prefix=args.output_dir,
-      num_shards=args.num_shards,
-      file_name_suffix = args.file_name_suffix)
+        file_path_prefix=args.output_dir,
+        num_shards=args.num_shards,
+        file_name_suffix=args.file_name_suffix,
+    )
 
     with beam.Pipeline(args.runner, options=options) as pipeline:
         _ = (
             pipeline
             | "Make a PCollection" >> beam.Create(final_list)
-            | "Batch elements" >> batch_examples_transform            
+            | "Batch elements" >> batch_examples_transform
             | "Get image data" >> beam.ParDo(make_img_dofunc)
             | "Serialize data" >> beam.ParDo(make_example_dofunc)
             | "Write to TFRecords files" >> write_to_tf_record
         )
-
-

@@ -5,6 +5,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import os
 import tensorflow_probability as tfp
+
 tfd = tfp.distributions
 
 
@@ -21,19 +22,19 @@ _TFRECS_FORMAT = {
 
 
 class ImageNet:
-    """Class for all ImageNet data-related functions, including TFRecord 
+    """Class for all ImageNet data-related functions, including TFRecord
     parsing along with augmentation transforms. TFRecords must follow the format
-    given in _TFRECS_FORMAT. If not specified otherwise in `augment_fn` argument, following 
+    given in _TFRECS_FORMAT. If not specified otherwise in `augment_fn` argument, following
     augmentations are applied to the dataset:
     - Color Jitter (random brightness, hue, saturation, contrast, flip)
-        This augmentation is inspired by SimCLR (https://arxiv.org/abs/2002.05709). 
+        This augmentation is inspired by SimCLR (https://arxiv.org/abs/2002.05709).
         The strength parameter is set to 5, which controlsthe effect of augmentations.
     - Random rotate
     - Random crop and resize
 
-    If `augment_fn` argument is not set to the string "default", it should be set to 
+    If `augment_fn` argument is not set to the string "default", it should be set to
     a callable object. That callable must take exactly two arguments: `image` and `target`
-    and must return two values corresponding to the same. 
+    and must return two values corresponding to the same.
 
     If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
@@ -41,10 +42,7 @@ class ImageNet:
        cfg: regnety.regnety.config.config.PreprocessingConfig instance.
     """
 
-    def __init__(
-        self,
-        cfg
-    ):
+    def __init__(self, cfg):
 
         self.tfrecs_filepath = cfg.tfrecs_filepath
         self.batch_size = cfg.batch_size
@@ -84,8 +82,9 @@ class ImageNet:
         """
 
         example = tf.io.parse_example(example_, _TFRECS_FORMAT)
-        image = tf.reshape(tf.io.decode_jpeg(
-            example["image"]), (self.image_size, self.image_size, 3))
+        image = tf.reshape(
+            tf.io.decode_jpeg(example["image"]), (self.image_size, self.image_size, 3)
+        )
         height = example["height"]
         width = example["width"]
         filename = example["filename"]
@@ -110,14 +109,11 @@ class ImageNet:
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
-        ds = files.interleave(tf.data.TFRecordDataset,
-                              num_parallel_calls=AUTO,
-                              deterministic=False)
-
-        ds = ds.map(
-            self.decode_example,
-            num_parallel_calls=AUTO
+        ds = files.interleave(
+            tf.data.TFRecordDataset, num_parallel_calls=AUTO, deterministic=False
         )
+
+        ds = ds.map(self.decode_example, num_parallel_calls=AUTO)
 
         ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
@@ -125,10 +121,10 @@ class ImageNet:
 
     def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Performs color jitter on the batch. It performs random brightness, hue, saturation, 
-        contrast and random left-right flip. 
+        Performs color jitter on the batch. It performs random brightness, hue, saturation,
+        contrast and random left-right flip.
 
-        Args: 
+        Args:
             image: Batch of images to perform color jitter on.
             target: Target tensor.
 
@@ -137,27 +133,29 @@ class ImageNet:
         """
 
         brightness_delta = self.strength * 0.1
-        contrast_lower = 1 - 0.5 * (self.strength / 10.)
-        contrast_upper = 1 + 0.5 * (self.strength / 10.)
+        contrast_lower = 1 - 0.5 * (self.strength / 10.0)
+        contrast_upper = 1 + 0.5 * (self.strength / 10.0)
         hue_delta = self.strength * 0.05
-        saturation_lower = 1 - 0.5 * (self.strength / 10.)
-        saturation_upper = (1 - 0.5 * (self.strength / 10.)) * 5
+        saturation_lower = 1 - 0.5 * (self.strength / 10.0)
+        saturation_upper = (1 - 0.5 * (self.strength / 10.0)) * 5
 
         aug_images = tf.image.random_brightness(image, brightness_delta)
-        aug_images = tf.image.random_contrast(aug_images, contrast_lower,
-                                              contrast_upper)
+        aug_images = tf.image.random_contrast(
+            aug_images, contrast_lower, contrast_upper
+        )
         aug_images = tf.image.random_hue(aug_images, hue_delta)
-        aug_images = tf.image.random_saturation(aug_images, saturation_lower,
-                                                saturation_upper)
+        aug_images = tf.image.random_saturation(
+            aug_images, saturation_lower, saturation_upper
+        )
 
         return aug_images, target
 
     def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Returns randomly flipped batch of images. Only horizontal flip 
+        Returns randomly flipped batch of images. Only horizontal flip
         is available
 
-        Args: 
+        Args:
             image: Batch of images to perform random rotation on.
             target: Target tensor.
 
@@ -169,10 +167,10 @@ class ImageNet:
         return aug_images, target
 
     def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """"
+        """ "
         Returns randomly rotated batch of images.
 
-        Args: 
+        Args:
             image: Batch of images to perform random rotation on.
             target: Target tensor.
 
@@ -180,15 +178,15 @@ class ImageNet:
             Augmented example with batch of images and targets with same dimensions.
         """
 
-        angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.)
+        angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.0)
         rotated = tfa.image.rotate(image, angles, fill_value=128.0)
         return rotated, target
 
     def random_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """"
-        Returns random crops of images. 
+        """ "
+        Returns random crops of images.
 
-        Args: 
+        Args:
             image: Batch of images to perform random crop on.
             target: Target tensor.
 
@@ -196,8 +194,7 @@ class ImageNet:
             Augmented example with batch of images and targets with same dimensions.
         """
 
-        cropped = tf.image.random_crop(
-            image, size=(self.batch_size, 320, 320, 3))
+        cropped = tf.image.random_crop(image, size=(self.batch_size, 320, 320, 3))
         return cropped, target
 
     def center_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
@@ -205,7 +202,7 @@ class ImageNet:
         Resizes a batch of images to (self.resize_pre_crop, self.resize_pre_crop) and
         then takes central crop of (self.crop_size, self.crop_size)
 
-        Args: 
+        Args:
             image: Batch of images to perform center crop on.
             target: Target tensor.
 
@@ -213,9 +210,11 @@ class ImageNet:
             Center cropped example with batch of images and targets with same dimensions.
         """
         aug_images = tf.image.resize(
-            image, (self.resize_pre_crop, self.resize_pre_crop))
-        aug_images = tf.image.central_crop(aug_images, float(
-            self.crop_size)/float(self.resize_pre_crop))
+            image, (self.resize_pre_crop, self.resize_pre_crop)
+        )
+        aug_images = tf.image.central_crop(
+            aug_images, float(self.crop_size) / float(self.resize_pre_crop)
+        )
         return aug_images, target
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
@@ -230,19 +229,17 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def _mixup(self, 
-        entry1: Tuple,
-        entry2: Tuple) -> Tuple:
+    def _mixup(self, entry1: Tuple, entry2: Tuple) -> Tuple:
         """
-        Function to apply mixup augmentation. To be applied after 
-        one hot encoding and before batching. 
-        
+        Function to apply mixup augmentation. To be applied after
+        one hot encoding and before batching.
+
         Args:
             entry1: Entry from first dataset. Should be one hot encoded and batched.
             entry2: Entry from second dataset. Must be one hot encoded and batched.
-        
+
         Returns:
-            Tuple with same structure as the entries. 
+            Tuple with same structure as the entries.
         """
         image1, label1 = entry1
         image2, label2 = entry2
@@ -266,9 +263,9 @@ class ImageNet:
         Function to apply all preprocessing and augmentations on dataset using
         tf.data.dataset.map().
 
-        If `augment_fn` argument is not set to the string "default", it should be set to 
+        If `augment_fn` argument is not set to the string "default", it should be set to
         a callable object. That callable must take exactly two arguments: `image` and `target`
-        and must return two values corresponding to the same. 
+        and must return two values corresponding to the same.
 
         Args: None.
 
@@ -278,31 +275,16 @@ class ImageNet:
         """
         ds = self._read_tfrecs()
 
-        ds = ds.map(
-            self._one_hot_encode_example,
-            num_parallel_calls=AUTO
-        )
+        ds = ds.map(self._one_hot_encode_example, num_parallel_calls=AUTO)
 
         if self.default_augment:
             if self.color_jitter:
-                ds = ds.map(
-                    self.color_jitter,
-                    num_parallel_calls=AUTO
-                )
+                ds = ds.map(self.color_jitter, num_parallel_calls=AUTO)
 
-            ds = ds.map(
-                self.random_flip,
-                num_parallel_calls=AUTO
-            )
+            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
 
-            ds = ds.map(
-                self.random_rotate,
-                num_parallel_calls=AUTO
-            )
-            ds = ds.map(
-                self.random_crop,
-                num_parallel_calls=AUTO
-            )
+            ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
+            ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
 
             if self.mixup:
                 ds1 = ds.shuffle(10)
@@ -311,21 +293,12 @@ class ImageNet:
 
                 ds = tf.data.Dataset.zip((ds1, ds2))
 
-                ds = ds.map(
-                    self._mixup,
-                    num_parallel_calls=AUTO
-                )
+                ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 
         elif self.val_augment:
-            ds = ds.map(
-                self.center_crop,
-                num_parallel_calls=AUTO
-            )
+            ds = ds.map(self.center_crop, num_parallel_calls=AUTO)
 
         else:
-            ds = ds.map(
-                self.augment_fn,
-                num_parallel_calls=AUTO
-            )
+            ds = ds.map(self.augment_fn, num_parallel_calls=AUTO)
 
         return ds
