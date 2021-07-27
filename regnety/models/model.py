@@ -69,7 +69,7 @@ def RegNetY(
         assert len(userdef_input_shape) == 3
     except:
         raise ValueError(
-            "Input shape is invalid. Please enter input shape " " as (height, width, 3)"
+            "Input shape is invalid. Please enter input shape as (height, width, 3)"
         )
 
     config = get_model_config(flops)

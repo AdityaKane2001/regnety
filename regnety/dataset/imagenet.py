@@ -167,7 +167,7 @@ class ImageNet:
         return aug_images, target
 
     def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """ "
+        """
         Returns randomly rotated batch of images.
 
         Args:
