@@ -1,21 +1,24 @@
+from typing import Union, Callable, Tuple, List, Type
+from datetime import datetime
 import math
 import tensorflow as tf
 import tensorflow_addons as tfa
 import os
+import tensorflow_probability as tfp
+tfd = tfp.distributions
 
-from typing import Union, Callable, Tuple, List, Type
 
 AUTO = tf.data.AUTOTUNE
 
 _TFRECS_FORMAT = {
-        "image": tf.io.FixedLenFeature([], tf.string),
-        "height": tf.io.FixedLenFeature([], tf.int64),
-        "width": tf.io.FixedLenFeature([], tf.int64),
-        "filename": tf.io.FixedLenFeature([], tf.string),
-        "label": tf.io.FixedLenFeature([], tf.int64),
-        "synset": tf.io.FixedLenFeature([], tf.string),
+    "image": tf.io.FixedLenFeature([], tf.string),
+    "height": tf.io.FixedLenFeature([], tf.int64),
+    "width": tf.io.FixedLenFeature([], tf.int64),
+    "filename": tf.io.FixedLenFeature([], tf.string),
+    "label": tf.io.FixedLenFeature([], tf.int64),
+    "synset": tf.io.FixedLenFeature([], tf.string),
 }
-    
+
 
 class ImageNet:
     """Class for all ImageNet data-related functions, including TFRecord 
@@ -35,33 +38,27 @@ class ImageNet:
     If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
-        tfrecs_filepath: list of filepaths of all TFRecords files
-        batch_size: batch_size for the Dataset
-        image_size: final image size of the images in the dataset
-        augment_fn: function to apply to dataset after loading raw TFrecords
-        num_classes: number of classes
-        
+       cfg: regnety.regnety.config.config.PreprocessingConfig instance.
     """
+
     def __init__(
         self,
-        tfrecs_filepath: List[str]  = None,
-        batch_size: int = 1024,
-        image_size: int = 512,
-        augment_fn: Union[str, Callable]  = "default",
-        num_classes: int = 1000,
-        scale_to_unit: bool = True
+        cfg
     ):
 
-        if (tfrecs_filepath is None) or  (tfrecs_filepath == []):
+        self.tfrecs_filepath = cfg.tfrecs_filepath
+        self.batch_size = cfg.batch_size
+        self.image_size = cfg.image_size
+        self.crop_size = cfg.crop_size
+        self.resize_pre_crop = cfg.resize_pre_crop
+        self.augment_fn = cfg.augment_fn
+        self.num_classes = cfg.num_classes
+        self.color_jitter = cfg.color_jitter
+        self.mixup = cfg.mixup
+
+        if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
 
-        self.tfrecs_filepath = tfrecs_filepath
-        self.batch_size = batch_size
-        self.image_size = image_size
-        self.augment_fn = augment_fn
-        self.num_classes = num_classes
-        self.scale_to_unit = scale_to_unit
-        
         if self.augment_fn == "default":
             self.default_augment = True
             self.val_augment = False
@@ -74,11 +71,7 @@ class ImageNet:
             self.default_augment = False
             self.val_augment = False
             self.strength = -1
-        
-        
-        
 
-    
     def decode_example(self, example_: tf.Tensor) -> dict:
         """Decodes an example to its individual attributes.
 
@@ -90,7 +83,7 @@ class ImageNet:
             the same names as _TFRECS_FORMAT.
         """
 
-        example =  tf.io.parse_example(example_, _TFRECS_FORMAT)
+        example = tf.io.parse_example(example_, _TFRECS_FORMAT)
         image = tf.reshape(tf.io.decode_jpeg(
             example["image"]), (self.image_size, self.image_size, 3))
         height = example["height"]
@@ -107,7 +100,6 @@ class ImageNet:
             "synset": synset,
         }
 
-
     def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
 
@@ -118,23 +110,19 @@ class ImageNet:
         """
 
         files = tf.data.Dataset.list_files(self.tfrecs_filepath)
-        ds = files.interleave(tf.data.TFRecordDataset, 
-          num_parallel_calls = AUTO,
-          deterministic=False)
+        ds = files.interleave(tf.data.TFRecordDataset,
+                              num_parallel_calls=AUTO,
+                              deterministic=False)
 
         ds = ds.map(
-            self.decode_example, 
-            num_parallel_calls = AUTO 
+            self.decode_example,
+            num_parallel_calls=AUTO
         )
 
-        ds = ds.cache("tf_cache")
-       
-        ds = ds.repeat()
-        ds = ds.batch(self.batch_size)
+        ds = ds.batch(self.batch_size, drop_remainder=True)
         ds = ds.prefetch(AUTO)
         return ds
 
-  
     def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Performs color jitter on the batch. It performs random brightness, hue, saturation, 
@@ -147,26 +135,38 @@ class ImageNet:
         Returns:
             Augmented example with batch of images and targets with same dimensions.
         """
-        
-        
+
         brightness_delta = self.strength * 0.1
-        contrast_lower = 1 - 0.5 * (self.strength /10.)
-        contrast_upper = 1 + 0.5 * (self.strength /10.)
+        contrast_lower = 1 - 0.5 * (self.strength / 10.)
+        contrast_upper = 1 + 0.5 * (self.strength / 10.)
         hue_delta = self.strength * 0.05
-        saturation_lower = 1 - 0.5 * (self.strength /10.)
-        saturation_upper = (1 - 0.5 * (self.strength /10.)) * 5
-        
+        saturation_lower = 1 - 0.5 * (self.strength / 10.)
+        saturation_upper = (1 - 0.5 * (self.strength / 10.)) * 5
+
         aug_images = tf.image.random_brightness(image, brightness_delta)
-        aug_images = tf.image.random_contrast(aug_images, contrast_lower, 
-            contrast_upper)
+        aug_images = tf.image.random_contrast(aug_images, contrast_lower,
+                                              contrast_upper)
         aug_images = tf.image.random_hue(aug_images, hue_delta)
-        aug_images = tf.image.random_saturation(aug_images, saturation_lower, 
-            saturation_upper)
-        aug_images = tf.image.random_flip_left_right(aug_images)
-        
+        aug_images = tf.image.random_saturation(aug_images, saturation_lower,
+                                                saturation_upper)
+
         return aug_images, target
 
+    def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Returns randomly flipped batch of images. Only horizontal flip 
+        is available
 
+        Args: 
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+
+        aug_images = tf.image.random_flip_left_right(image)
+        return aug_images, target
 
     def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """"
@@ -181,9 +181,8 @@ class ImageNet:
         """
 
         angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.)
-        rotated = tfa.image.rotate(image, angles, fill_value = 128.0)
+        rotated = tfa.image.rotate(image, angles, fill_value=128.0)
         return rotated, target
-
 
     def random_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """"
@@ -197,13 +196,14 @@ class ImageNet:
             Augmented example with batch of images and targets with same dimensions.
         """
 
-        cropped = tf.image.random_crop(image, size = (self.batch_size, 320, 320, 3))
+        cropped = tf.image.random_crop(
+            image, size=(self.batch_size, 320, 320, 3))
         return cropped, target
-    
-    def center_crop_224(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+
+    def center_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
-        Center crops a given batch of images to (320, 320) and resizes them to 
-        (224, 224)
+        Resizes a batch of images to (self.resize_pre_crop, self.resize_pre_crop) and
+        then takes central crop of (self.crop_size, self.crop_size)
 
         Args: 
             image: Batch of images to perform center crop on.
@@ -212,24 +212,10 @@ class ImageNet:
         Returns:
             Center cropped example with batch of images and targets with same dimensions.
         """
-        aug_images = tf.image.resize(image, (320, 320))
-        aug_images = tf.image.central_crop(aug_images, 224./320.)
-        return aug_images, target
-
-    def _scale_to_unit(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
-        """
-        Divides the pixel values of the image by 255. 
-
-        Args: 
-            image: Batch of images to perform center crop on.
-            target: Target tensor.
-
-        Returns:
-            Scaled example with batch of images and targets with same dimensions.
-        """
-
-        aug_images = tf.cast(image, tf.float32)
-        aug_images = aug_images / 255.
+        aug_images = tf.image.resize(
+            image, (self.resize_pre_crop, self.resize_pre_crop))
+        aug_images = tf.image.central_crop(aug_images, float(
+            self.crop_size)/float(self.resize_pre_crop))
         return aug_images, target
 
     def _one_hot_encode_example(self, example: dict) -> tuple:
@@ -244,6 +230,36 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
+    def _mixup(self, 
+        entry1: Tuple,
+        entry2: Tuple) -> Tuple:
+        """
+        Function to apply mixup augmentation. To be applied after 
+        one hot encoding and before batching. 
+        
+        Args:
+            entry1: Entry from first dataset. Should be one hot encoded and batched.
+            entry2: Entry from second dataset. Must be one hot encoded and batched.
+        
+        Returns:
+            Tuple with same structure as the entries. 
+        """
+        image1, label1 = entry1
+        image2, label2 = entry2
+
+        image1 = tf.cast(image1, tf.float32)
+        image2 = tf.cast(image2, tf.float32)
+
+        alpha = [0.2]
+        dist = tfd.Beta(alpha, alpha)
+        l = dist.sample(1)[0][0]
+
+        img = l * image1 + (1 - l) * image2
+        lab = l * label1 + (1 - l) * label2
+
+        img = tf.cast(img, tf.uint8)
+
+        return img, lab
 
     def make_dataset(self) -> Type[tf.data.Dataset]:
         """
@@ -261,44 +277,55 @@ class ImageNet:
             (image, target)
         """
         ds = self._read_tfrecs()
-        
+
         ds = ds.map(
             self._one_hot_encode_example,
-            num_parallel_calls = AUTO
+            num_parallel_calls=AUTO
         )
 
         if self.default_augment:
+            if self.color_jitter:
+                ds = ds.map(
+                    self.color_jitter,
+                    num_parallel_calls=AUTO
+                )
+
             ds = ds.map(
-                self.color_jitter,
-                num_parallel_calls = AUTO
+                self.random_flip,
+                num_parallel_calls=AUTO
             )
 
             ds = ds.map(
                 self.random_rotate,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
+            )
+            ds = ds.map(
+                self.random_crop,
+                num_parallel_calls=AUTO
             )
 
-            ds =  ds.map(
-                self.random_crop,
-                num_parallel_calls = AUTO
-            )
-        
+            if self.mixup:
+                ds1 = ds.shuffle(10)
+
+                ds2 = ds.shuffle(1)
+
+                ds = tf.data.Dataset.zip((ds1, ds2))
+
+                ds = ds.map(
+                    self._mixup,
+                    num_parallel_calls=AUTO
+                )
+
         elif self.val_augment:
             ds = ds.map(
-                self.center_crop_224,
-                num_parallel_calls = AUTO
+                self.center_crop,
+                num_parallel_calls=AUTO
             )
-        
+
         else:
             ds = ds.map(
                 self.augment_fn,
-                num_parallel_calls = AUTO
-            )
-
-        if self.scale_to_unit:
-            ds = ds.map(
-                self._scale_to_unit,
-                num_parallel_calls = AUTO
+                num_parallel_calls=AUTO
             )
 
         return ds

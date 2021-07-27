@@ -35,6 +35,9 @@ class PreStem(layers.Layer):
         self.mean = mean
         self.var = variance
 
+        self.rescale = layers.experimental.preprocessing.Rescaling(
+            scale=1./255., name="prestem_rescale"
+        )
         self.resize = layers.experimental.preprocessing.Resizing(
             224, 224, name='prestem_resize'
         )
@@ -44,6 +47,7 @@ class PreStem(layers.Layer):
     
     def call(self, inputs):
         x = self.resize(inputs)
+        x = self.rescale(x)
         x = self.norm(x)
         return x
     

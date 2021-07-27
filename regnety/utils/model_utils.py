@@ -24,18 +24,6 @@ def plot_model(
                 show_layer_names=True,
             )
 
-def get_layer_names_dict(regnety_instance:RegNetY):
-    """
-    Returns a detailed dict containing names of all stage, blocks, layers
-
-    Args: 
-        regnety_instance: A RegNetY instance
-    
-    Returns:
-        Dict which contains names of all layers in a hierarchical manner 
-    """
-
-    pass
 
 
 def get_flops(model, input_shape = (1, 224,224,3)):
