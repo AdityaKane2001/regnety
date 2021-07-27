@@ -1,10 +1,12 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 import pandas as pd
 import numpy as np
 import time
 from PIL import Image
+
 #%matplotlib inline
 import matplotlib.pyplot as plt
 
@@ -12,21 +14,16 @@ import matplotlib.pyplot as plt
 from dataset import imagenet
 
 
-
 tf.keras.backend.clear_session()
 
-imgnet = imagenet.ImageNet(
-    tf.io.gfile.glob('/content/*.tfrecord'),
-
-    batch_size = 128
-)
+imgnet = imagenet.ImageNet(tf.io.gfile.glob("/content/*.tfrecord"), batch_size=128)
 
 ds = imgnet.make_dataset()
 
 ds = ds.prefetch(tf.data.AUTOTUNE)
-k=0
+k = 0
 for i in ds:
-    print('Shapes:',i[0], i[1])
+    print("Shapes:", i[0], i[1])
     break
 
 # model = tf.keras.Sequential(

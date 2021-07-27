@@ -3,7 +3,7 @@ import tensorflow as tf
 from dataclasses import dataclass
 from typing import List, Type, Union, Callable
 
-ALLOWED_FLOPS = ('200mf', '400mf', '600mf', '800mf')
+ALLOWED_FLOPS = ("200mf", "400mf", "600mf", "800mf")
 
 
 @dataclass
@@ -18,6 +18,7 @@ class PreprocessingConfig:
     color_jitter: bool
     mixup: bool
 
+
 @dataclass
 class RegNetYConfig:
     """
@@ -25,7 +26,7 @@ class RegNetYConfig:
 
     Args:
         name: Name of the model eg. "RegNetY200MF"
-        flops: Flops of the model eg. "400MF" (Processing one image requires 
+        flops: Flops of the model eg. "400MF" (Processing one image requires
             400 million floating point operations (multiplication, addition))
         depths: List of depths for every stage
         widths: List of  widths (number of channels) after every stage
@@ -80,8 +81,6 @@ class TrainConfig:
     model_dir: str
 
 
-
-
 def get_preprocessing_config(
     tfrecs_filepath: List[str] = None,
     batch_size: int = 1024,
@@ -91,12 +90,12 @@ def get_preprocessing_config(
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
     color_jitter: bool = False,
-    mixup: bool = True
+    mixup: bool = True,
 ):
 
     """
     Getter function for preprocessing configuration. Images are first resized to `resize_pre_crop`
-    and then a central crop of `crop_size` is taken.  
+    and then a central crop of `crop_size` is taken.
 
     Args:
         tfrecs_filepath: list of filepaths of all TFRecords files.
@@ -108,10 +107,10 @@ def get_preprocessing_config(
         num_classes: number of classes.
         color_jitter: If True, color_jitter augmentation is applied.
         mixup: If True, mixup augmentation is applied
-    
+
     Returns:
         A PreprocessingConfig dataclass instance with all attributes
-    
+
     """
     return PreprocessingConfig(
         tfrecs_filepath=tfrecs_filepath,
@@ -122,7 +121,7 @@ def get_preprocessing_config(
         augment_fn=augment_fn,
         num_classes=num_classes,
         color_jitter=color_jitter,
-        mixup=mixup
+        mixup=mixup,
     )
 
 
@@ -133,10 +132,10 @@ def get_model_config(flops: str):
 
     Link to the paper: https://arxiv.org/pdf/2003.13678.pdf
 
-    The widths and depths are deduced from a quantized linear function. For 
-    more information, please refer to the original paper. 
+    The widths and depths are deduced from a quantized linear function. For
+    more information, please refer to the original paper.
 
-    Args: 
+    Args:
         flops: String denoting flops of model (as per the paper)
 
     Returns:
@@ -149,7 +148,7 @@ def get_model_config(flops: str):
     if flops.lower() not in ALLOWED_FLOPS:
         raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
 
-    if flops.lower() == '200mf':
+    if flops.lower() == "200mf":
         return RegNetYConfig(
             name="RegNetY 200MF",
             flops="200MF",
@@ -161,10 +160,10 @@ def get_model_config(flops: str):
             se_ratio=0.25,
             wa=36,
             w0=24,
-            wm=2.5
+            wm=2.5,
         )
 
-    elif flops.lower() == '400mf':
+    elif flops.lower() == "400mf":
         return RegNetYConfig(
             name="RegNetY 400MF",
             flops="400MF",
@@ -176,10 +175,10 @@ def get_model_config(flops: str):
             se_ratio=0.25,
             wa=28,
             w0=48,
-            wm=2.1
+            wm=2.1,
         )
 
-    elif flops.lower() == '600mf':
+    elif flops.lower() == "600mf":
         return RegNetYConfig(
             name="RegNetY 600MF",
             flops="600MF",
@@ -191,10 +190,10 @@ def get_model_config(flops: str):
             se_ratio=0.25,
             wa=33,
             w0=48,
-            wm=2.3
+            wm=2.3,
         )
 
-    elif flops.lower() == '800mf':
+    elif flops.lower() == "800mf":
         return RegNetYConfig(
             name="RegNetY 800MF",
             flops="800MF",
@@ -206,8 +205,9 @@ def get_model_config(flops: str):
             se_ratio=0.25,
             wa=39,
             w0=56,
-            wm=2.4
+            wm=2.4,
         )
+
 
 def get_train_config(
     optimizer: str = "adamw",
@@ -223,14 +223,14 @@ def get_train_config(
 ):
     """
     Getter function for training config. Config is same as in the paper
-    (see link above). If ambiguous, 
-    https://github.com/facebookresearch/pycls/blob/master/pycls/core/config.py  
+    (see link above). If ambiguous,
+    https://github.com/facebookresearch/pycls/blob/master/pycls/core/config.py
     is assumed to be source of truth.
 
     Args:
         optimizer: Optimizer to be used in model. Can be
             one of `sgd`, `adam`, `adamw`
-        base_lr: Base LR to be used for training. This will be the 
+        base_lr: Base LR to be used for training. This will be the
             peak LR reached after warmup
         warmup_epochs: Warmup schedule followed for these many epochs
         warmup_factor: Linear factor for warmup schedule
@@ -240,7 +240,7 @@ def get_train_config(
         lr_schedule: LR schedule to be used for training.
             Can be one of `constant` and `half_cos`
         log_dir: Directory to store logs
-        model_dir: Directory to store model checkpoints 
+        model_dir: Directory to store model checkpoints
 
     Returns:
         A TrainConfig dataclass instance.
