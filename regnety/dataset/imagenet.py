@@ -53,6 +53,7 @@ class ImageNet:
         self.num_classes = cfg.num_classes
         self.color_jitter = cfg.color_jitter
         self.mixup = cfg.mixup
+        self.area_factor = 0.08
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
@@ -149,6 +150,36 @@ class ImageNet:
         )
 
         return aug_images, target
+    
+    def _inception_style_crop(self, images, labels):
+        """
+        Applies inception style cropping
+        """
+        # # Get target metrics
+        area_ratio = tf.random.uniform((), minval=0.08, maxval=1.0)
+        
+        aspect_ratio = tf.random.uniform((), minval=3./4., maxval=4./3.)
+        
+        
+        target_area = self.image_size ** 2 * area_ratio
+
+        w = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area * aspect_ratio)), 0, 511), tf.int32)
+        
+        h = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area / aspect_ratio)), 0, 511), tf.int32)
+
+
+        y0s = tf.random.uniform((), minval=0, maxval=self.image_size - h - 1, dtype=tf.int32)
+        x0s = tf.random.uniform((), minval=0, maxval=self.image_size - w - 1, dtype=tf.int32)
+
+        begins = [0, y0s, x0s, 0]
+        sizes =  [self.batch_size, h, w, 3]
+
+        aug_images = tf.slice(images, begins, sizes)
+        aug_images = tf.image.resize(aug_images, (224, 224))
+
+        return aug_images, labels
+
+
 
     def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
@@ -281,9 +312,10 @@ class ImageNet:
             if self.color_jitter:
                 ds = ds.map(self.color_jitter, num_parallel_calls=AUTO)
 
-            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
 
-            ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
+            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
+            ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
+            # ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
             ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
 
             if self.mixup:
