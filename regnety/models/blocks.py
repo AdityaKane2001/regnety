@@ -111,19 +111,20 @@ class SE(layers.Layer):
         self.ga_pool = layers.GlobalAveragePooling2D(
             name=self.pref + "_global_avg_pool"
         )
-        self.squeeze_dense = layers.Dense(
-            self.se_filters, activation="relu", name=self.pref + "_squeeze_dense"
+        self.squeeze_reshape = layers.Reshape((1, 1, self.out_filters), name=self.pref + "_squeeze_reshape")
+        self.squeeze_conv = layers.Conv2D(
+            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv"
         )
-        self.excite_dense = layers.Dense(
-            self.out_filters, activation="sigmoid", name=self.pref + "_excite_dense"
+        self.excite_conv = layers.Conv2D(
+            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv"
         )
 
     def call(self, inputs):
         # input shape: (h,w,out_filters)
         x = self.ga_pool(inputs)  # x: (out_filters)
-        x = self.squeeze_dense(x)  # x: (se_filters)
-        x = self.excite_dense(x)  # x: (out_filters)
-        x = tf.reshape(x, [-1, 1, 1, self.out_filters])
+        x = self.squeeze_reshape(x)  # x: (1, 1, out_filters)
+        x = self.squeeze_conv(x)  # x: (1, 1, se_filters)
+        x = self.excite_conv(x)  # x: (1, 1, out_filters)
         x = tf.math.multiply(x, inputs)  # x: (h,w,out_filters)
         return x
 
