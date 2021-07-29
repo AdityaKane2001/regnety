@@ -54,6 +54,21 @@ class ImageNet:
         self.color_jitter = cfg.color_jitter
         self.mixup = cfg.mixup
         self.area_factor = 0.08
+        eigen_vals = tf.constant(
+            [[0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+            ]
+        )
+        self.eigen_vals = tf.stack([eigen_vals] * self.batch_size, axis=0 )
+        eigen_vecs = tf.constant(
+                     [
+                        [-0.5675, 0.7192, 0.4009],
+                        [-0.5808, -0.0045, -0.8140],
+                        [-0.5836, -0.6948, 0.4203],
+                    ]
+                )
+        self.eigen_vecs = tf.stack([eigen_vecs] * self.batch_size, axis=0)
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
@@ -168,8 +183,8 @@ class ImageNet:
         h = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area / aspect_ratio)), 0, 511), tf.int32)
 
 
-        y0s = tf.random.uniform((), minval=0, maxval=self.image_size - h - 1, dtype=tf.int32)
-        x0s = tf.random.uniform((), minval=0, maxval=self.image_size - w - 1, dtype=tf.int32)
+        y0s = tf.random.uniform((), minval=0, maxval=self.image_size - h + 1, dtype=tf.int32)
+        x0s = tf.random.uniform((), minval=0, maxval=self.image_size - w + 1, dtype=tf.int32)
 
         begins = [0, y0s, x0s, 0]
         sizes =  [self.batch_size, h, w, 3]
@@ -180,7 +195,25 @@ class ImageNet:
         return aug_images, labels
 
 
-
+    def _pca_jitter(self, image, target):
+        
+        aug_images = tf.cast(image, tf.float32) / 255.
+        alpha = tf.random.normal((self.batch_size,3), stddev=0.1)
+        alpha = tf.stack([alpha, alpha, alpha], axis=1)
+        rgb = tf.math.reduce_sum(alpha * self.eigen_vals * self.eigen_vecs, axis=2)
+        rgb = tf.expand_dims(rgb, axis=1)
+        rgb = tf.expand_dims(rgb, axis=1)
+        
+        aug_images = aug_images + rgb
+        aug_images = aug_images * 255.
+        
+        aug_images = tf.cast(tf.clip_by_value(aug_images, 0, 255), tf.uint8)
+        
+        return aug_images, target
+        
+        
+    
+    
     def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Returns randomly flipped batch of images. Only horizontal flip
@@ -312,20 +345,21 @@ class ImageNet:
             if self.color_jitter:
                 ds = ds.map(self.color_jitter, num_parallel_calls=AUTO)
 
-
-            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
             ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
+            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
+            ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
+            
             # ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
-            ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
+#             ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
 
-            if self.mixup:
-                ds1 = ds.shuffle(10)
+#             if self.mixup:
+#                 ds1 = ds.shuffle(10)
 
-                ds2 = ds.shuffle(1)
+#                 ds2 = ds.shuffle(1)
 
-                ds = tf.data.Dataset.zip((ds1, ds2))
+#                 ds = tf.data.Dataset.zip((ds1, ds2))
 
-                ds = ds.map(self._mixup, num_parallel_calls=AUTO)
+#                 ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 
         elif self.val_augment:
             ds = ds.map(self.center_crop, num_parallel_calls=AUTO)
