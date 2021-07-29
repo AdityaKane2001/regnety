@@ -33,8 +33,8 @@ tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
 
 tfrecs_filepath.sort()
 one_percent = math.ceil(len(tfrecs_filepath) / 100)
-train_tfrecs_filepath = tfrecs_filepath[one_percent:]
-val_tfrecs_filepath = tfrecs_filepath[:one_percent]
+train_tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenet-tfrecs/train_*.tfrecord")
+val_tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenet-tfrecs/valid_*.tfrecord")
 trial = args.trial_run
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
@@ -58,8 +58,8 @@ train_cfg = get_train_config(
     weight_decay=5e-5,
     momentum=0.9,
     lr_schedule="half_cos",
-    log_dir="gs://ak-europe-train/logs",
-    model_dir="gs://ak-europe-train/models",
+    log_dir="gs://adityakane-train/logs",
+    model_dir="gs://adityakane-train/models",
 )
 
 

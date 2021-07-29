@@ -99,13 +99,11 @@ class SE(layers.Layer):
         name_prefix: prefix to be given to name
     """
 
-    def __init__(self, 
-        in_filters: int = 0,
-        se_ratio: float = 0.25,
-        name_prefix: str = ''
+    def __init__(
+        self, in_filters: int = 0, se_ratio: float = 0.25, name_prefix: str = ""
     ):
-        super(SE, self).__init__(name=name_prefix + 'SE')
-        
+        super(SE, self).__init__(name=name_prefix + "SE")
+
         self.in_filters = in_filters
         self.se_ratio = se_ratio
         self.se_filters = int(self.in_filters * self.se_ratio)
@@ -113,25 +111,24 @@ class SE(layers.Layer):
         self.pref = name_prefix
 
         self.ga_pool = layers.GlobalAveragePooling2D(
-            name=self.pref + '_global_avg_pool'
+            name=self.pref + "_global_avg_pool"
         )
-        self.squeeze_dense = layers.Dense(
-            self.se_filters, activation='relu', 
-            name=self.pref + '_squeeze_dense'
+        self.squeeze_reshape = layers.Reshape((1, 1, self.out_filters))
+        self.squeeze_conv = layers.Conv2D(
+            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv"
         )
-        self.excite_dense = layers.Dense(
-            self.out_filters,  activation='sigmoid', 
-            name=self.pref + '_excite_dense'
+#         self.excite_reshape = layers.Reshape((1, 1, self.out_filters)
+        self.excite_conv = layers.Conv2D(
+            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv"
         )
-        
-        
+
     def call(self, inputs):
         # input shape: (h,w,out_filters)
-        x = self.ga_pool(inputs) # x: (out_filters)
-        x = self.squeeze_dense(x) # x: (se_filters)
-        x = self.excite_dense(x) # x: (out_filters)
-        x = tf.reshape(x, [-1,1,1,self.out_filters])
-        x = tf.math.multiply(x, inputs) # x: (h,w,out_filters)
+        x = self.ga_pool(inputs)  # x: (out_filters)
+        x = self.squeeze_reshape(x) # x: (1, 1, out_filters)
+        x = self.squeeze_conv(x)  # x: (1, 1, se_filters)
+        x = self.excite_conv(x)  # x: (1, 1, out_filters)
+        x = tf.math.multiply(x, inputs)  # x: (h,w,out_filters)
         return x
     
     def get_config(self):
@@ -200,12 +197,12 @@ class YBlock(layers.Layer):
 
         self.relu1x1_1 = layers.ReLU(name=self.pref + '_relu1x1_1')
         self.relu3x3 = layers.ReLU(name=self.pref + '_relu3x3')
-        self.relu1x1_2 = layers.ReLU(name=self.pref + '_relu1x1_2')
+        self.relu = layers.ReLU(name=self.pref + '_relu')
 
         self.skip_conv = None
         self.conv3x3 = None
         self.bn_skip = None
-        self.relu_skip = None
+        
 
         if (in_filters != out_filters) or (stride != 1):
             self.skip_conv = layers.Conv2D(
@@ -214,7 +211,7 @@ class YBlock(layers.Layer):
             self.bn_skip = layers.BatchNormalization(
                 name=self.pref + '_bn_skip'
             )
-            self.relu_skip = layers.ReLU(name=self.pref + '_relu_skip')    
+            
  
             self.conv3x3 = layers.Conv2D(
                 out_filters, (3, 3), strides=2, groups=self.groups, 
@@ -239,17 +236,17 @@ class YBlock(layers.Layer):
         
         x = self.conv1x1_2(x)
         x = self.bn1x1_2(x)
-        x = self.relu1x1_2(x)
+        
 
         if self.skip_conv is not None:
             skip_tensor = self.skip_conv(inputs)
             skip_tensor = self.bn_skip(skip_tensor)
-            skip_tensor = self.relu_skip(skip_tensor)
+            
         
         else:
             skip_tensor = inputs
         
-        x = x + skip_tensor
+        x = self.relu(x + skip_tensor)
 
         return x
     
