@@ -1,12 +1,13 @@
 """Contains the building blocks of RegNetY models."""
 
+
 import tensorflow as tf
 
 from tensorflow.keras import layers
-
+from regnety.regnety.models.utils import ConvInitializer, DenseInitializer
 
 # Contains:
-# 0. PreStem 
+# 0. PreStem
 # 1. Stem
 # 2. Body
 #     2.1 Block
@@ -19,6 +20,11 @@ from tensorflow.keras import layers
 _MEAN = tf.constant([0.485, 0.456, 0.406])
 _VAR = tf.constant([0.052441, 0.050176, 0.050625])
 
+
+def get_l2_regularizer(factor: float = 5e-5):
+    return tf.keras.regularizers.L2(l2=factor)
+
+
 class PreStem(layers.Layer):
     """Contains preprocessing layers which are to be included in the model.
     
@@ -28,9 +34,9 @@ class PreStem(layers.Layer):
     """
 
     def __init__(self,
-        mean: tf.Tensor = _MEAN,
-        variance: tf.Tensor = _VAR,
-    ):
+                 mean: tf.Tensor = _MEAN,
+                 variance: tf.Tensor = _VAR,
+                 ):
         super(PreStem, self).__init__(name='PreStem')
         self.mean = mean
         self.var = variance
@@ -44,18 +50,18 @@ class PreStem(layers.Layer):
         self.norm = layers.experimental.preprocessing.Normalization(
             mean=self.mean, variance=self.var, name='prestem_normalize'
         )
-    
+
     def call(self, inputs):
         x = self.resize(inputs)
         x = self.rescale(x)
         x = self.norm(x)
         return x
-    
+
     def get_config(self):
-        
+
         config = super(PreStem, self).get_config()
         config.update({
-            'mean' : self.mean,
+            'mean': self.mean,
             'variance': self.var
         })
         return config
@@ -71,7 +77,10 @@ class Stem(layers.Layer):
 
     def __init__(self):
         super(Stem, self).__init__(name='Stem')
-        self.conv3x3 = layers.Conv2D(32, (3, 3), strides=2, use_bias=False)
+        self.conv3x3 = layers.Conv2D(
+            32, (3, 3), strides=2, use_bias=False, 
+            kernel_initializer=ConvInitializer()
+        )
         self.bn = layers.BatchNormalization(
             momentum=0.9, epsilon=0.00001
         )
@@ -82,11 +91,12 @@ class Stem(layers.Layer):
         x = self.bn(x)
         x = self.act(x)
         return x
-    
+
     def get_config(self):
-        
+
         config = super(Stem, self).get_config()
         return config
+
 
 class SE(layers.Layer):
     """
@@ -115,32 +125,34 @@ class SE(layers.Layer):
         )
         self.squeeze_reshape = layers.Reshape((1, 1, self.out_filters))
         self.squeeze_conv = layers.Conv2D(
-            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv"
+            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv",
+            kernel_initializer=ConvInitializer()
         )
 #         self.excite_reshape = layers.Reshape((1, 1, self.out_filters)
         self.excite_conv = layers.Conv2D(
-            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv"
+            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv",
+            kernel_initializer=ConvInitializer()
         )
 
     def call(self, inputs):
         # input shape: (h,w,out_filters)
         x = self.ga_pool(inputs)  # x: (out_filters)
-        x = self.squeeze_reshape(x) # x: (1, 1, out_filters)
+        x = self.squeeze_reshape(x)  # x: (1, 1, out_filters)
         x = self.squeeze_conv(x)  # x: (1, 1, se_filters)
         x = self.excite_conv(x)  # x: (1, 1, out_filters)
         x = tf.math.multiply(x, inputs)  # x: (h,w,out_filters)
         return x
-    
+
     def get_config(self):
-        
+
         config = super(SE, self).get_config()
         config.update({
-            'in_filters' : self.in_filters,
+            'in_filters': self.in_filters,
             'se_ratio': self.se_ratio,
-            'name_prefix': self.pref 
+            'name_prefix': self.pref
         })
         return config
-        
+
 
 class YBlock(layers.Layer):
     """
@@ -157,12 +169,12 @@ class YBlock(layers.Layer):
     """
 
     def __init__(self,
-        group_width:int = 0,
-        in_filters:int = 0,
-        out_filters:int = 0,
-        stride:int = 1,
-        name_prefix: str = ''
-    ):
+                 group_width: int = 0,
+                 in_filters: int = 0,
+                 out_filters: int = 0,
+                 stride: int = 1,
+                 name_prefix: str = ''
+                 ):
         super(YBlock, self).__init__(name=name_prefix)
 
         self.group_width = group_width
@@ -173,25 +185,27 @@ class YBlock(layers.Layer):
 
         self.groups = self.out_filters // self.group_width
 
-        self.conv1x1_1 = layers.Conv2D(out_filters, (1,1), 
-            name=self.pref + '_conv1x1_1'
-        )
-        self.se = SE(out_filters, name_prefix = self.pref + '_')
-        self.conv1x1_2 = layers.Conv2D(out_filters, (1,1), 
-            name=self.pref + '_conv1x1_2',
-            use_bias=False
-        )
+        self.conv1x1_1 = layers.Conv2D(out_filters, (1, 1),
+                                       name=self.pref + '_conv1x1_1',
+                                       kernel_initializer=ConvInitializer()
+                                       )
+        self.se = SE(out_filters, name_prefix=self.pref + '_')
+        self.conv1x1_2 = layers.Conv2D(out_filters, (1, 1),
+                                       name=self.pref + '_conv1x1_2',
+                                       use_bias=False,
+                                       kernel_initializer=ConvInitializer()
+                                       )
 
         self.bn1x1_1 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001, 
+            momentum=0.9, epsilon=0.00001,
             name=self.pref + '_bn1x1_1'
         )
         self.bn3x3 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001, 
+            momentum=0.9, epsilon=0.00001,
             name=self.pref + '_bn3x3'
         )
         self.bn1x1_2 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001, 
+            momentum=0.9, epsilon=0.00001,
             name=self.pref + '_bn1x1_2'
         )
 
@@ -202,27 +216,27 @@ class YBlock(layers.Layer):
         self.skip_conv = None
         self.conv3x3 = None
         self.bn_skip = None
-        
 
         if (in_filters != out_filters) or (stride != 1):
             self.skip_conv = layers.Conv2D(
                 out_filters, (1, 1), strides=2, name=self.pref + '_conv_skip',
+                kernel_initializer=ConvInitializer(),
                 use_bias=False)
             self.bn_skip = layers.BatchNormalization(
                 name=self.pref + '_bn_skip'
             )
-            
- 
+
             self.conv3x3 = layers.Conv2D(
-                out_filters, (3, 3), strides=2, groups=self.groups, 
+                out_filters, (3, 3), strides=2, groups=self.groups,
+                kernel_initializer=ConvInitializer(),
                 padding='same', name=self.pref + '_conv3x3', use_bias=False)
- 
+
         else:
             self.conv3x3 = layers.Conv2D(
-                out_filters, (3, 3), strides=1, groups=self.groups, 
+                out_filters, (3, 3), strides=1, groups=self.groups,
+                kernel_initializer=ConvInitializer(),
                 padding='same', name=self.pref + '_conv3x3', use_bias=False)
-        
-    
+
     def call(self, inputs):
         x = self.conv1x1_1(inputs)
         x = self.bn1x1_1(x)
@@ -231,27 +245,25 @@ class YBlock(layers.Layer):
         x = self.conv3x3(x)
         x = self.bn3x3(x)
         x = self.relu3x3(x)
-        
+
         x = self.se(x)
-        
+
         x = self.conv1x1_2(x)
         x = self.bn1x1_2(x)
-        
 
         if self.skip_conv is not None:
             skip_tensor = self.skip_conv(inputs)
             skip_tensor = self.bn_skip(skip_tensor)
-            
-        
+
         else:
             skip_tensor = inputs
-        
+
         x = self.relu(x + skip_tensor)
 
         return x
-    
+
     def get_config(self):
-        
+
         config = super(YBlock, self).get_config()
         config.update({
             'group_width': self.group_width,
@@ -261,7 +273,6 @@ class YBlock(layers.Layer):
             'name_prefix': self.pref
         })
         return config
-    
 
 
 class Stage(layers.Layer):
@@ -280,14 +291,14 @@ class Stage(layers.Layer):
     """
 
     def __init__(self,
-        depth:int = 0,
-        group_width:int = 0,
-        in_filters:int = 0,
-        out_filters:int = 0,
-        stage_num: int = 0
-    ):
+                 depth: int = 0,
+                 group_width: int = 0,
+                 in_filters: int = 0,
+                 out_filters: int = 0,
+                 stage_num: int = 0
+                 ):
         super(Stage, self).__init__(name='Stage_' + str(stage_num))
-        
+
         self.depth = depth
         self.group_width = group_width
         self.in_filters = in_filters
@@ -305,28 +316,27 @@ class Stage(layers.Layer):
 
         for block_num in range(depth - 1):
             self.stage.append(
-                YBlock(group_width, out_filters, out_filters, stride=1, 
-                name_prefix=self.pref + 'YBlock_' + str(block_num + 1))
+                YBlock(group_width, out_filters, out_filters, stride=1,
+                       name_prefix=self.pref + 'YBlock_' + str(block_num + 1))
             )
 
     def call(self, inputs):
         x = inputs
         for i in range(self.depth):
             x = self.stage[i](x)
-        
+
         return x
-    
+
     def get_config(self):
         config = super(YBlock, self).get_config()
         config.update({
-            'depth' : self.depth,
-            'group_width' : self.group_width,
-            'in_filters' : self.in_filters,
-            'out_filters' : self.out_filters,
-            'stage_num' : self.stage_num
+            'depth': self.depth,
+            'group_width': self.group_width,
+            'in_filters': self.in_filters,
+            'out_filters': self.out_filters,
+            'stage_num': self.stage_num
         })
         return config
-        
 
 
 class Head(layers.Layer):
@@ -336,21 +346,23 @@ class Head(layers.Layer):
     Args:
         num_classes: Integer specifying number of classes of data. 
     """
+
     def __init__(self, num_classes):
-        super(Head, self).__init__(name = 'Head')
+        super(Head, self).__init__(name='Head')
 
         self.num_classes = num_classes
         self.gap = layers.GlobalAveragePooling2D(name='Head_global_avg_pool')
-        self.fc = layers.Dense(self.num_classes, name='Head_fc')
-    
+        self.fc = layers.Dense(
+            self.num_classes, name='Head_fc', kernel_initializer=DenseInitializer())
+
     def call(self, inputs):
         x = self.gap(inputs)
         x = self.fc(x)
-        return x 
-    
+        return x
+
     def get_config(self):
         config = super(YBlock, self).get_config()
         config.update({
-            'num_classes' : self.num_classes
+            'num_classes': self.num_classes
         })
         return config
