@@ -25,16 +25,21 @@ parser.add_argument("-taddr", "--tpu_address", type=str,
 parser.add_argument("-tfp", "--tfrecs_path_pattern", type=str,
                     help="GCS bucket path pattern for tfrecords")
 parser.add_argument("-trial", "--trial_run", action="store_true")
+parser.add_argument("-r", "--region", type=str)
 
 args = parser.parse_args()
 flops = args.flops
 tpu_address = args.tpu_address
 tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
+region = args.region
+
+imgnet_location = "gs://adityakane-imagenet-tfrecs" if region=="us" else "gs://ak-europe-imagenet"
+log_location = "gs://adityakane-train" if region=="us" else "gs://ak-europe-train"
 
 tfrecs_filepath.sort()
 one_percent = math.ceil(len(tfrecs_filepath) / 100)
-train_tfrecs_filepath = tf.io.gfile.glob("gs://ak-europe-imagenet/train_*.tfrecord")
-val_tfrecs_filepath = tf.io.gfile.glob("gs://ak-europe-imagenet/valid_*.tfrecord")
+train_tfrecs_filepath = tf.io.gfile.glob(imgnet_location + "/train_*.tfrecord")
+val_tfrecs_filepath = tf.io.gfile.glob(imgnet_location + "/valid_*.tfrecord")
 trial = args.trial_run
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
@@ -50,7 +55,7 @@ if flops not in ALLOWED_FLOPS:
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 train_cfg = get_train_config(
-    optimizer="adamw",
+    optimizer="adam",
     base_lr=0.001 * strategy.num_replicas_in_sync,
     warmup_epochs=5,
     warmup_factor=0.1,
@@ -58,8 +63,8 @@ train_cfg = get_train_config(
     weight_decay=5e-5,
     momentum=0.9,
     lr_schedule="half_cos",
-    log_dir="gs://adityakane-train/logs",
-    model_dir="gs://adityakane-train/models",
+    log_dir=log_location + "/logs",
+    model_dir=log_location + "/models",
 )
 
 
@@ -85,6 +90,7 @@ logging.info(
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
+#     model.load_weights("gs://adityakane-train/models/07_29_2021_06h22m/all_model_epoch_94_val_loss_1.36")
 
 train_ds = ImageNet(train_prep_cfg).make_dataset()
 val_ds = ImageNet(val_prep_cfg).make_dataset()
@@ -106,11 +112,14 @@ trial_callbacks = [
 callbacks = trial_callbacks if trial else tutil.get_callbacks(
     train_cfg, date_time)
 
+# count = 94 * 1250
+# callbacks[0].count = count
+
 history = model.fit(
     train_ds,
    	epochs=train_cfg.total_epochs,
    	validation_data=val_ds,
-   	callbacks=callbacks
+   	callbacks=callbacks,
 )
 
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, "history_%s.json" % date_time), "a+") as f:
