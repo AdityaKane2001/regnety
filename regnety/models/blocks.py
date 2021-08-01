@@ -21,9 +21,6 @@ _MEAN = tf.constant([0.485, 0.456, 0.406])
 _VAR = tf.constant([0.052441, 0.050176, 0.050625])
 
 
-def get_l2_regularizer(factor: float = 5e-5):
-    return tf.keras.regularizers.L2(l2=factor)
-
 
 class PreStem(layers.Layer):
     """Contains preprocessing layers which are to be included in the model.
@@ -223,7 +220,7 @@ class YBlock(layers.Layer):
                 kernel_initializer=ConvInitializer(),
                 use_bias=False)
             self.bn_skip = layers.BatchNormalization(
-                name=self.pref + '_bn_skip'
+                name=self.pref + '_bn_skip',  momentum=0.9, epsilon=0.00001,
             )
 
             self.conv3x3 = layers.Conv2D(

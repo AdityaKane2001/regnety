@@ -347,19 +347,19 @@ class ImageNet:
 
             ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
             ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
-            ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
+#             ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
             
             # ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
 #             ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
 
-#             if self.mixup:
-#                 ds1 = ds.shuffle(10)
+            if self.mixup:
+                ds1 = ds.shuffle(10)
 
-#                 ds2 = ds.shuffle(1)
+                ds2 = ds.shuffle(1)
 
-#                 ds = tf.data.Dataset.zip((ds1, ds2))
+                ds = tf.data.Dataset.zip((ds1, ds2))
 
-#                 ds = ds.map(self._mixup, num_parallel_calls=AUTO)
+                ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 
         elif self.val_augment:
             ds = ds.map(self.center_crop, num_parallel_calls=AUTO)

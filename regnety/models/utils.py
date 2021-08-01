@@ -10,11 +10,11 @@ class ConvInitializer(tf.keras.initializers.Initializer):
         super(ConvInitializer, self).__init__()
 
     def __call__(self, shape, dtype, **kwargs):
-        fan_out = tf.math.reduce_prod(shape) / shape[2]
+        fan_out = tf.cast(tf.math.reduce_prod(shape) / shape[2], tf.float32)
         return tf.random.normal(
             shape,
-            mean=0.0,
-            stddev=tf.math.sqrt(2.0 / fan_out),
+            mean=tf.cast(0.0, tf.float32),
+            stddev=tf.cast(tf.math.sqrt(2.0 / fan_out), tf.float32),
             dtype=dtype
         )
 

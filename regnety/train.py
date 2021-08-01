@@ -33,8 +33,8 @@ tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
 
 tfrecs_filepath.sort()
 one_percent = math.ceil(len(tfrecs_filepath) / 100)
-train_tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenet-tfrecs/train_*.tfrecord")
-val_tfrecs_filepath = tf.io.gfile.glob("gs://adityakane-imagenet-tfrecs/valid_*.tfrecord")
+train_tfrecs_filepath = tf.io.gfile.glob("gs://ak-europe-imagenet/train_*.tfrecord")
+val_tfrecs_filepath = tf.io.gfile.glob("gs://ak-europe-imagenet/valid_*.tfrecord")
 trial = args.trial_run
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
@@ -50,8 +50,8 @@ if flops not in ALLOWED_FLOPS:
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 train_cfg = get_train_config(
-    optimizer="sgd",
-    base_lr=0.1 * strategy.num_replicas_in_sync,
+    optimizer="adamw",
+    base_lr=0.001 * strategy.num_replicas_in_sync,
     warmup_epochs=5,
     warmup_factor=0.1,
     total_epochs=100,
@@ -66,7 +66,7 @@ train_cfg = get_train_config(
 train_prep_cfg = get_preprocessing_config(
     tfrecs_filepath=train_tfrecs_filepath,
     augment_fn="default",
-    mixup=True
+    mixup=False
 )
 
 val_prep_cfg = get_preprocessing_config(
