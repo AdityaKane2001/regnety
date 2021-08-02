@@ -55,7 +55,7 @@ if flops not in ALLOWED_FLOPS:
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 train_cfg = get_train_config(
-    optimizer="adam",
+    optimizer="adamw",
     base_lr=0.001 * strategy.num_replicas_in_sync,
     warmup_epochs=5,
     warmup_factor=0.1,

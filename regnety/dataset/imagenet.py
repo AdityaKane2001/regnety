@@ -191,6 +191,9 @@ class ImageNet:
 
         aug_images = tf.slice(images, begins, sizes)
         aug_images = tf.image.resize(aug_images, (224, 224))
+        
+        aug_images = tf.image.random_brightness(aug_images, max_delta=32. / 255.)
+        aug_images = tf.image.random_saturation(aug_images, lower=0.5, upper=1.5)
 
         return aug_images, labels
 
@@ -293,7 +296,7 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def _mixup(self, entry1: Tuple, entry2: Tuple) -> Tuple:
+    def _mixup(self, image, label) -> Tuple:
         """
         Function to apply mixup augmentation. To be applied after
         one hot encoding and before batching.
@@ -305,8 +308,8 @@ class ImageNet:
         Returns:
             Tuple with same structure as the entries.
         """
-        image1, label1 = entry1
-        image2, label2 = entry2
+        image1, label1 = image, label
+        image2, label2 = tf.reverse(image, axis=[0]), tf.reverse(label, axis=[0])
 
         image1 = tf.cast(image1, tf.float32)
         image2 = tf.cast(image2, tf.float32)
@@ -347,18 +350,12 @@ class ImageNet:
 
             ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
             ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
-#             ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
+            ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
             
             # ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
 #             ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
 
             if self.mixup:
-                ds1 = ds.shuffle(10)
-
-                ds2 = ds.shuffle(1)
-
-                ds = tf.data.Dataset.zip((ds1, ds2))
-
                 ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 
         elif self.val_augment:
