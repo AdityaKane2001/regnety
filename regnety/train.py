@@ -55,8 +55,8 @@ if flops not in ALLOWED_FLOPS:
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 train_cfg = get_train_config(
-    optimizer="adamw",
-    base_lr=0.001 * strategy.num_replicas_in_sync,
+    optimizer="sgd",
+    base_lr=0.1 * strategy.num_replicas_in_sync,
     warmup_epochs=5,
     warmup_factor=0.1,
     total_epochs=100,
@@ -90,6 +90,8 @@ logging.info(
 
 with strategy.scope():
     model = tutil.make_model(flops, train_cfg)
+    model.load_weights(log_location + "/init_weights/" + flops.upper())
+    logging.info("Model loaded")
 #     model.load_weights("gs://adityakane-train/models/07_29_2021_06h22m/all_model_epoch_94_val_loss_1.36")
 
 train_ds = ImageNet(train_prep_cfg).make_dataset()

@@ -79,7 +79,7 @@ class Stem(layers.Layer):
             kernel_initializer=ConvInitializer()
         )
         self.bn = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001
+            momentum=0.9, epsilon=1e-5
         )
         self.act = layers.ReLU()
 
@@ -184,7 +184,8 @@ class YBlock(layers.Layer):
 
         self.conv1x1_1 = layers.Conv2D(out_filters, (1, 1),
                                        name=self.pref + '_conv1x1_1',
-                                       kernel_initializer=ConvInitializer()
+                                       kernel_initializer=ConvInitializer(),
+                                       use_bias=False
                                        )
         self.se = SE(out_filters, name_prefix=self.pref + '_')
         self.conv1x1_2 = layers.Conv2D(out_filters, (1, 1),
@@ -194,15 +195,15 @@ class YBlock(layers.Layer):
                                        )
 
         self.bn1x1_1 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001,
+            momentum=0.9, epsilon=1e-5,
             name=self.pref + '_bn1x1_1'
         )
         self.bn3x3 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001,
+            momentum=0.9, epsilon=1e-5,
             name=self.pref + '_bn3x3'
         )
         self.bn1x1_2 = layers.BatchNormalization(
-            momentum=0.9, epsilon=0.00001,
+            momentum=0.9, epsilon=1e-5,
             name=self.pref + '_bn1x1_2'
         )
 
@@ -220,7 +221,7 @@ class YBlock(layers.Layer):
                 kernel_initializer=ConvInitializer(),
                 use_bias=False)
             self.bn_skip = layers.BatchNormalization(
-                name=self.pref + '_bn_skip',  momentum=0.9, epsilon=0.00001,
+                name=self.pref + '_bn_skip',  momentum=0.9, epsilon=1e-5,
             )
 
             self.conv3x3 = layers.Conv2D(

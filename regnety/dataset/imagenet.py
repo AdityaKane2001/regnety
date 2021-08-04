@@ -192,8 +192,8 @@ class ImageNet:
         aug_images = tf.slice(images, begins, sizes)
         aug_images = tf.image.resize(aug_images, (224, 224))
         
-        aug_images = tf.image.random_brightness(aug_images, max_delta=32. / 255.)
-        aug_images = tf.image.random_saturation(aug_images, lower=0.5, upper=1.5)
+#         aug_images = tf.image.random_brightness(aug_images, max_delta=32. / 255.)
+#         aug_images = tf.image.random_saturation(aug_images, lower=0.5, upper=1.5)
 
         return aug_images, labels
 
