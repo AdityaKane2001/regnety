@@ -58,8 +58,8 @@ class PreStem(layers.Layer):
 
         config = super(PreStem, self).get_config()
         config.update({
-            'mean': self.mean,
-            'variance': self.var
+            'mean': [0.485, 0.456, 0.406],
+            'variance': [0.052441, 0.050176, 0.050625]
         })
         return config
 
