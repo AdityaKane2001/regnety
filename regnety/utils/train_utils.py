@@ -117,7 +117,6 @@ def make_model(flops, train_cfg):
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
             tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
-            top1error,
         ],
     )
 

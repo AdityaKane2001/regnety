@@ -128,7 +128,6 @@ class SE(layers.Layer):
             self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv",
             kernel_initializer=ConvInitializer()
         )
-#         self.excite_reshape = layers.Reshape((1, 1, self.out_filters)
         self.excite_conv = layers.Conv2D(
             self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv",
             kernel_initializer=ConvInitializer()
@@ -187,6 +186,7 @@ class YBlock(layers.Layer):
 
         self.conv1x1_1 = layers.Conv2D(out_filters, (1, 1),
                                        name=self.pref + '_conv1x1_1',
+                                       use_bias=False,
                                        kernel_initializer=ConvInitializer()
                                        )
         self.se = SE(out_filters, name_prefix=self.pref + '_')
@@ -328,7 +328,7 @@ class Stage(layers.Layer):
         return x
 
     def get_config(self):
-        config = super(YBlock, self).get_config()
+        config = super(Stage, self).get_config()
         config.update({
             'depth': self.depth,
             'group_width': self.group_width,
@@ -361,7 +361,7 @@ class Head(layers.Layer):
         return x
 
     def get_config(self):
-        config = super(YBlock, self).get_config()
+        config = super(Head, self).get_config()
         config.update({
             'num_classes': self.num_classes
         })
