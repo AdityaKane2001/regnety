@@ -17,11 +17,17 @@ logging.basicConfig(
 
 def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
     if cfg.optimizer == "sgd":
-        return tfa.optimizers.SGDW(
+        opt = tfa.optimizers.SGDW(
             weight_decay=cfg.weight_decay,
             learning_rate=cfg.base_lr,
             momentum=cfg.momentum,
             nesterov=True,
+        )
+
+        return tfa.optimizers.MovingAverage(
+            opt,
+            average_decay=0.0001024,
+            start_step=6250,
         )
 
     elif cfg.optimizer == "adam":
