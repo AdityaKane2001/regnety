@@ -118,7 +118,7 @@ def make_model(flops, train_cfg):
     optim = get_optimizer(train_cfg)
     model = regnety.regnety.models.model.RegNetY(flops)
     model.compile(
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
         optimizer=optim,
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
