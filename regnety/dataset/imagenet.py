@@ -42,7 +42,7 @@ class ImageNet:
        cfg: regnety.regnety.config.config.PreprocessingConfig instance.
     """
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, no_aug=False):
 
         self.tfrecs_filepath = cfg.tfrecs_filepath
         self.batch_size = cfg.batch_size
@@ -54,6 +54,7 @@ class ImageNet:
         self.color_jitter = cfg.color_jitter
         self.mixup = cfg.mixup
         self.area_factor = 0.08
+        self.no_aug = no_aug
         eigen_vals = tf.constant(
             [[0.2175, 0.0188, 0.0045],
              [0.2175, 0.0188, 0.0045],
@@ -343,6 +344,9 @@ class ImageNet:
         ds = self._read_tfrecs()
 
         ds = ds.map(self._one_hot_encode_example, num_parallel_calls=AUTO)
+
+        if self.no_aug:
+            return ds
 
         if self.default_augment:
             if self.color_jitter:
