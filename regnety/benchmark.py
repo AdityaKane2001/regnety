@@ -19,7 +19,7 @@ from regnety.regnety.config.config import (
 )
 
 
-parser = argparse.ArgumentParser(description="Train RegNetY")
+parser = argparse.ArgumentParser(description="Benchmark RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-m", "--model_location", help="Model checkpoint location")
 
