@@ -46,23 +46,32 @@ val_prep_cfg = get_preprocessing_config(
     mixup=False
 )
 
-val_ds = ImageNet(val_prep_cfg, no_aug=True).make_dataset()
-val_ds = val_ds.repeat()
+
+# val_ds = val_ds.repeat()
 
 cluster_resolver, strategy = tutil.connect_to_tpu()
 
 with strategy.scope():
     model = tf.keras.models.load_model(model_location)
 
+    
+val_ds = ImageNet(val_prep_cfg, no_aug=True).make_dataset()
+val_ds = val_ds.repeat() 
+
 #warmup device, iterator
 model.predict(val_ds, steps=10)
 
-NUM_IMAGES = BATCH_SIZE * 100
+logging.info("Warmed up")
+
+logging.info("Running benchmark")
+NUM_IMAGES = BATCH_SIZE * 256
 
 start = time.time()
-model.predict(val_ds, steps=100)
+model.predict(val_ds, steps=256)
 end = time.time()
 time_taken = end - start
+
+logging.info(f"Devices: {tf.config.list_logical_devices()}")
 
 logging.info(f"Inference of {NUM_IMAGES} images took {time_taken} seconds. images/second = {NUM_IMAGES / time_taken}")
 

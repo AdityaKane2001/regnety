@@ -346,6 +346,7 @@ class ImageNet:
         ds = ds.map(self._one_hot_encode_example, num_parallel_calls=AUTO)
 
         if self.no_aug:
+            ds = ds.map(lambda image,label: (tf.cast(image, tf.uint8), label), num_parallel_calls=AUTO)
             return ds
 
         if self.default_augment:
