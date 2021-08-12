@@ -27,7 +27,7 @@ args = parser.parse_args()
 flops = args.flops
 model_location = args.model_location
 region = "us"
-BATCH_SIZE = 1024
+BATCH_SIZE = 256
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
                     datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
