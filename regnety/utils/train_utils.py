@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
+def get_optimizer(cfg: regnety.config.config.TrainConfig):
     if cfg.optimizer == "sgd":
         opt = tfa.optimizers.SGDW(
             weight_decay=cfg.weight_decay,
@@ -44,7 +44,7 @@ def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
         raise NotImplementedError(f"Optimizer choice not supported: {cfg.optimizer}")
 
 
-def get_train_schedule(cfg: regnety.regnety.config.config.TrainConfig):
+def get_train_schedule(cfg: regnety.config.config.TrainConfig):
     if cfg.lr_schedule == "half_cos":
 
         def half_cos_schedule(epoch, lr):
@@ -116,7 +116,7 @@ def top1error(y_true, y_pred):
 
 def make_model(flops, train_cfg):
     optim = get_optimizer(train_cfg)
-    model = regnety.regnety.models.model.RegNetY(flops)
+    model = regnety.models.model.RegNetY(flops)
     model.compile(
         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
         optimizer=optim,
@@ -130,7 +130,7 @@ def make_model(flops, train_cfg):
 
 
 def connect_to_tpu(tpu_address: str = None):
-    if tpu_address is not None:  # When using GCP
+    if tpu_address is not None: 
         cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
             tpu=tpu_address
         )
@@ -141,7 +141,7 @@ def connect_to_tpu(tpu_address: str = None):
         logging.info(f"Running on TPU {cluster_resolver.master()}")
         logging.info(f"REPLICAS: {strategy.num_replicas_in_sync}")
         return cluster_resolver, strategy
-    else:  # When using Colab or Kaggle
+    else:
         try:
             cluster_resolver = (
                 tf.distribute.cluster_resolver.TPUClusterResolver.connect()

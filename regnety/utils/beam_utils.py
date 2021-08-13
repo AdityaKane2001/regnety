@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from regnety.regnety.utils.image_utils import *
+from regnety.utils.image_utils import *
 
 
 def _bytes_feature(value):

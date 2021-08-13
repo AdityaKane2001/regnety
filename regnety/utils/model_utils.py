@@ -1,5 +1,5 @@
 import tensorflow as tf
-from regnety.regnety.models.model import RegNetY
+from regnety.models.model import RegNetY
 from tensorflow.python.framework.convert_to_constants import (
     convert_variables_to_constants_v2_as_graph,
 )

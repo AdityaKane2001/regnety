@@ -39,7 +39,9 @@ class ImageNet:
     If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
-       cfg: regnety.regnety.config.config.PreprocessingConfig instance.
+       cfg: regnety.config.config.PreprocessingConfig instance.
+       no_aug: If True, overrides cfg and returns images as they are. Requires cfg object 
+            to determine batch_size, image_size, etc.
     """
 
     def __init__(self, cfg, no_aug=False):
@@ -356,9 +358,6 @@ class ImageNet:
             ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
             ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
             
-            # ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
-#             ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
-
             if self.mixup:
                 ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 

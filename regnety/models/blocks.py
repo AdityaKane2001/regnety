@@ -4,7 +4,7 @@
 import tensorflow as tf
 
 from tensorflow.keras import layers
-from regnety.regnety.models.utils import ConvInitializer, DenseInitializer
+from regnety.models.utils import ConvInitializer, DenseInitializer
 
 # Contains:
 # 0. PreStem
@@ -122,11 +122,13 @@ class SE(layers.Layer):
         )
         self.squeeze_reshape = layers.Reshape((1, 1, self.out_filters))
         self.squeeze_conv = layers.Conv2D(
-            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv",
+            self.se_filters, (1, 1), activation="relu",
+            name=self.pref + "_squeeze_conv",
             kernel_initializer=ConvInitializer()
         )
         self.excite_conv = layers.Conv2D(
-            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv",
+            self.out_filters, (1, 1), activation="sigmoid", 
+            name=self.pref + "_excite_conv",
             kernel_initializer=ConvInitializer()
         )
 
@@ -350,7 +352,9 @@ class Head(layers.Layer):
         self.num_classes = num_classes
         self.gap = layers.GlobalAveragePooling2D(name='Head_global_avg_pool')
         self.fc = layers.Dense(
-            self.num_classes, name='Head_fc', kernel_initializer=DenseInitializer())
+            self.num_classes, 
+            name='Head_fc', 
+            kernel_initializer=DenseInitializer())
 
     def call(self, inputs):
         x = self.gap(inputs)
