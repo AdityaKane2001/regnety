@@ -58,21 +58,18 @@ if flops not in ALLOWED_FLOPS:
 
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
-if yaml_path is not None:
-    train_cfg = get_train_config_from_yaml(yaml_path)
-else:
-    train_cfg = get_train_config(
-        optimizer="sgd",
-        base_lr=0.1 * strategy.num_replicas_in_sync,
-        warmup_epochs=5,
-        warmup_factor=0.1,
-        total_epochs=100,
-        weight_decay=5e-5,
-        momentum=0.9,
-        lr_schedule="half_cos",
-        log_dir=log_location + "/logs",
-        model_dir=log_location + "/models",
-    )
+train_cfg = get_train_config(
+    optimizer="adamw",
+    base_lr=0.001 * strategy.num_replicas_in_sync,
+    warmup_epochs=5,
+    warmup_factor=0.1,
+    total_epochs=100,
+    weight_decay=5e-5,
+    momentum=0.9,
+    lr_schedule="half_cos",
+    log_dir=log_location + "/logs",
+    model_dir=log_location + "/models",
+)
 
 
 train_prep_cfg = get_preprocessing_config(
