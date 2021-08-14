@@ -1,3 +1,5 @@
+"""Script for training RegNetY. Supports TPU training."""
+
 import tensorflow as tf
 import argparse
 import os
@@ -23,7 +25,7 @@ from regnety.config.config import (
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr", "--tpu_address", type=str,
-                    help="Network address of TPU clsuter", default=None)
+                    help="Network address of TPU cluster", default=None)
 parser.add_argument("-traintfrec", "--train_tfrecs_path_pattern", type=str,
                     help="Path for tfrecords. eg. gs://imagenet/*.tfrecord.")
 parser.add_argument("-validtfrec", "--valid_tfrecs_path_pattern", type=str,
@@ -36,7 +38,7 @@ parser.add_argument("-wandbproject", "wandb_project_id", type=str, default="", h
 parser.add_argument("-wandbuser", "wandb_user_id", type=str, default="", help="User ID for wandb logging")
 
 args = parser.parse_args()
-flops = args.flops
+flops = args.flops.lower()
 tpu_address = args.tpu_address
 train_tfrecs_filepath = tf.io.gfile.glob(args.train_tfrecs_path_pattern)
 val_tfrecs_filepath = tf.io.gfile.glob(args.valid_tfrecs_path_pattern)
@@ -49,7 +51,7 @@ wandbuser = args.wandb_user_id
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
                     datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
 
-if ("mf" not in flops) or ("MF" not in flops):
+if "mf" not in flops:
     flops += "mf"
 
 if flops not in ALLOWED_FLOPS:

@@ -1,3 +1,5 @@
+"""Contains functions to get and load config."""
+
 import yaml
 
 from dataclasses import dataclass

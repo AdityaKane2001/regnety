@@ -1,3 +1,5 @@
+"""Script to make TFRecords."""
+
 import argparse
 from utils.tfrecords_utils import *
 

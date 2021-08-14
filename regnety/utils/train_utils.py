@@ -1,3 +1,5 @@
+"""Contains utility functions for training."""
+
 import tensorflow as tf
 import tensorflow_addons as tfa
 import math

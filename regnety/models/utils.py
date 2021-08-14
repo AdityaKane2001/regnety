@@ -1,3 +1,5 @@
+"""Contains utilities for instantiating model architecture."""
+
 import tensorflow as tf
 
 class ConvInitializer(tf.keras.initializers.Initializer):

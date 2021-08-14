@@ -1,3 +1,5 @@
+"""Contains preprocessing functions for RegNetY"""
+
 from typing import Union, Callable, Tuple, List, Type
 from datetime import datetime
 import math
@@ -172,6 +174,13 @@ class ImageNet:
     def _inception_style_crop(self, images, labels):
         """
         Applies inception style cropping
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
         """
         # # Get target metrics
         area_ratio = tf.random.uniform((), minval=0.08, maxval=1.0)
@@ -195,13 +204,21 @@ class ImageNet:
         aug_images = tf.slice(images, begins, sizes)
         aug_images = tf.image.resize(aug_images, (224, 224))
         
-#         aug_images = tf.image.random_brightness(aug_images, max_delta=32. / 255.)
-#         aug_images = tf.image.random_saturation(aug_images, lower=0.5, upper=1.5)
 
         return aug_images, labels
 
 
     def _pca_jitter(self, image, target):
+        """
+        Applies PCA jitter to images.
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
         
         aug_images = tf.cast(image, tf.float32) / 255.
         alpha = tf.random.normal((self.batch_size,3), stddev=0.1)

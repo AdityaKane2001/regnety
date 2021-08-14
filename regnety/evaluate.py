@@ -1,3 +1,5 @@
+"""Script to evaluate trained RegNetY models."""
+
 import tensorflow as tf
 import argparse
 import logging

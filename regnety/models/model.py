@@ -1,3 +1,5 @@
+"""Contains scripts to instantiate RegNetY architecture."""
+
 import tensorflow as tf
 
 from regnety.config import get_model_config, ALLOWED_FLOPS
