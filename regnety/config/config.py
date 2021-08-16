@@ -1,4 +1,6 @@
-import tensorflow as tf
+"""Contains functions to get and load config."""
+
+import yaml
 
 from dataclasses import dataclass
 from typing import List, Type, Union, Callable
@@ -218,8 +220,8 @@ def get_train_config(
     weight_decay: float = 5e-5,
     momentum: float = 0.9,
     lr_schedule: str = "half_cos",
-    log_dir: str = "gs://ak-europe-train/logs",
-    model_dir: str = "gs://ak-europe-train/models",
+    log_dir: str = "",
+    model_dir: str = "",
 ):
     """
     Getter function for training config. Config is same as in the paper
@@ -257,4 +259,32 @@ def get_train_config(
         lr_schedule=lr_schedule,
         log_dir=log_dir,
         model_dir=model_dir,
+    )
+
+
+def get_train_config_from_yaml(yaml_path: str):
+    """
+    Returns a TrainConfig instance loaded from yaml file.
+
+    Args:
+        yaml_path: Path to train config yaml
+    
+    Returns:
+         TrainConfig dataclass instance.
+    """
+
+    with open(yaml_path, 'r') as stream:
+        config_dict = yaml.safe_load(stream)
+
+    return TrainConfig(
+        optimizer=config_dict["optimizer"],
+        base_lr=config_dict["base_lr"],
+        warmup_epochs=config_dict["warmup_epochs"],
+        warmup_factor=config_dict["warmup_factor"],
+        total_epochs=config_dict["total_epochs"],
+        weight_decay=config_dict["weight_decay"],
+        momentum=config_dict["momentum"],
+        lr_schedule=config_dict["lr_schedule"],
+        log_dir=config_dict["log_dir"],
+        model_dir=config_dict["model_dir"],
     )

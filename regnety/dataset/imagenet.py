@@ -1,3 +1,5 @@
+"""Contains preprocessing functions for RegNetY"""
+
 from typing import Union, Callable, Tuple, List, Type
 from datetime import datetime
 import math
@@ -39,10 +41,12 @@ class ImageNet:
     If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
-       cfg: regnety.regnety.config.config.PreprocessingConfig instance.
+       cfg: regnety.config.config.PreprocessingConfig instance.
+       no_aug: If True, overrides cfg and returns images as they are. Requires cfg object 
+            to determine batch_size, image_size, etc.
     """
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, no_aug=False):
 
         self.tfrecs_filepath = cfg.tfrecs_filepath
         self.batch_size = cfg.batch_size
@@ -53,6 +57,23 @@ class ImageNet:
         self.num_classes = cfg.num_classes
         self.color_jitter = cfg.color_jitter
         self.mixup = cfg.mixup
+        self.area_factor = 0.08
+        self.no_aug = no_aug
+        eigen_vals = tf.constant(
+            [[0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+            ]
+        )
+        self.eigen_vals = tf.stack([eigen_vals] * self.batch_size, axis=0 )
+        eigen_vecs = tf.constant(
+                     [
+                        [-0.5675, 0.7192, 0.4009],
+                        [-0.5808, -0.0045, -0.8140],
+                        [-0.5836, -0.6948, 0.4203],
+                    ]
+                )
+        self.eigen_vecs = tf.stack([eigen_vecs] * self.batch_size, axis=0)
 
         if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
             raise ValueError("List of TFrecords paths cannot be None or empty")
@@ -149,7 +170,73 @@ class ImageNet:
         )
 
         return aug_images, target
+    
+    def _inception_style_crop(self, images, labels):
+        """
+        Applies inception style cropping
 
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+        # # Get target metrics
+        area_ratio = tf.random.uniform((), minval=0.08, maxval=1.0)
+        
+        aspect_ratio = tf.random.uniform((), minval=3./4., maxval=4./3.)
+        
+        
+        target_area = self.image_size ** 2 * area_ratio
+
+        w = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area * aspect_ratio)), 0, 511), tf.int32)
+        
+        h = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area / aspect_ratio)), 0, 511), tf.int32)
+
+
+        y0s = tf.random.uniform((), minval=0, maxval=self.image_size - h + 1, dtype=tf.int32)
+        x0s = tf.random.uniform((), minval=0, maxval=self.image_size - w + 1, dtype=tf.int32)
+
+        begins = [0, y0s, x0s, 0]
+        sizes =  [self.batch_size, h, w, 3]
+
+        aug_images = tf.slice(images, begins, sizes)
+        aug_images = tf.image.resize(aug_images, (224, 224))
+        
+
+        return aug_images, labels
+
+
+    def _pca_jitter(self, image, target):
+        """
+        Applies PCA jitter to images.
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+        
+        aug_images = tf.cast(image, tf.float32) / 255.
+        alpha = tf.random.normal((self.batch_size,3), stddev=0.1)
+        alpha = tf.stack([alpha, alpha, alpha], axis=1)
+        rgb = tf.math.reduce_sum(alpha * self.eigen_vals * self.eigen_vecs, axis=2)
+        rgb = tf.expand_dims(rgb, axis=1)
+        rgb = tf.expand_dims(rgb, axis=1)
+        
+        aug_images = aug_images + rgb
+        aug_images = aug_images * 255.
+        
+        aug_images = tf.cast(tf.clip_by_value(aug_images, 0, 255), tf.uint8)
+        
+        return aug_images, target
+        
+        
+    
+    
     def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
         """
         Returns randomly flipped batch of images. Only horizontal flip
@@ -229,7 +316,7 @@ class ImageNet:
         """
         return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def _mixup(self, entry1: Tuple, entry2: Tuple) -> Tuple:
+    def _mixup(self, image, label) -> Tuple:
         """
         Function to apply mixup augmentation. To be applied after
         one hot encoding and before batching.
@@ -241,8 +328,8 @@ class ImageNet:
         Returns:
             Tuple with same structure as the entries.
         """
-        image1, label1 = entry1
-        image2, label2 = entry2
+        image1, label1 = image, label
+        image2, label2 = tf.reverse(image, axis=[0]), tf.reverse(label, axis=[0])
 
         image1 = tf.cast(image1, tf.float32)
         image2 = tf.cast(image2, tf.float32)
@@ -277,22 +364,19 @@ class ImageNet:
 
         ds = ds.map(self._one_hot_encode_example, num_parallel_calls=AUTO)
 
+        if self.no_aug:
+            ds = ds.map(lambda image,label: (tf.cast(image, tf.uint8), label), num_parallel_calls=AUTO)
+            return ds
+
         if self.default_augment:
             if self.color_jitter:
                 ds = ds.map(self.color_jitter, num_parallel_calls=AUTO)
 
+            ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
             ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
-
-            ds = ds.map(self.random_rotate, num_parallel_calls=AUTO)
-            ds = ds.map(self.random_crop, num_parallel_calls=AUTO)
-
+            ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
+            
             if self.mixup:
-                ds1 = ds.shuffle(10)
-
-                ds2 = ds.shuffle(1)
-
-                ds = tf.data.Dataset.zip((ds1, ds2))
-
                 ds = ds.map(self._mixup, num_parallel_calls=AUTO)
 
         elif self.val_augment:
