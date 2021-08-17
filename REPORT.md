@@ -1,5 +1,10 @@
-# GSoC 2021 at TensorFlow : Final Report
- 
+---
+permalink: /opensource/gsoc2021report
+title: "GSoC 2021 at TensorFlow : Final Report"
+collection: opensource
+author_profile: true
+---
+
 ## **Implement RegNet-Y in TensorFlow 2**
 
 
@@ -33,15 +38,15 @@ RegNetY is originally implemented in PyTorch by Facebook AI Research in their re
 <br>
 
 ### Training
-Training and evaluation of the model was the most interesting part of the project. It included finding the perfect setup which suited the model and gave the best accuracy. During the training, we fixated on the hyperparameters which resulted in the best performance and started improving from there. Iteratively and progressively, we were able to get substantial gains. It was common to go back to the model implementation and input pipeline to check their correctness and improve them. We left no stone unturned.   
-
+Training and evaluation of the model was the most interesting part of the project. It included finding the perfect setup which suited the model and gave the best accuracy. During the training, we fixated on the hyperparameters which resulted in the best performance and started improving from there. Iteratively and progressively, we were able to get substantial gains. It was common to go back to the model implementation and input pipeline to check their correctness and improve them. We left no stone unturned. However, I was unable to obtain the accuracies mentioned by the authors, even after rigourous debugging. The following accuracies were obtained after substantial experimentation. I finally fixed upon using AdamW as the optimizer and keeping rest the same as the paper. This gave good performance boosts. I will continue to explore and try to improve the accuracy as far as possible.   
 Validation accuracies of models:
-| **Model** | **Accuracy** |
-|-----------|--------------|
-| 200MF     |       67.54% |
-| 400MF     |       70.19% |
-| 600MF     |       73.18% |
-| 800MF     |       73.94% |
+
+| **Model** | **Our accuracy** | **Accuracy from the paper** |
+|-----------|------------------|-----------------------------|
+| 200MF     | 67.54%           | 70.3%                       |
+| 400MF     | 70.19%           | 74.1%                       |
+| 600MF     | 73.18%           | 75.5%                       |
+| 800MF     | 73.94%           | 76.3%                       |
 <br>   
 
 ## TPU Research Cloud
