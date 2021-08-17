@@ -1,7 +1,6 @@
 # GSoC 2021 at TensorFlow : Final Report
  
 ## **Implement RegNet-Y in TensorFlow 2**
-<br>
 
 
 ## Objectives
@@ -9,7 +8,7 @@
 - To create script(s) instantiating the RegNet-Y architecture.
 - To train RegNet-Y  on ImageNet-1k and add to TF Hub.
 <br>
-<br>
+
 
 ## Acknowledgement
 
