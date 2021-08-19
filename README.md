@@ -90,7 +90,7 @@ One can easily load checkpoints from any epoch during training for fine-grained 
 ```python
 !pip install -q git+https://github.com/AdityaKane2001/regnety@main
 
-from regnety import RegNetY
+from regnety.models import RegNetY
 
 # One function call and it's done!
 model = RegNetY(flops="200mf", load_checkpoint="42") #Loads weights from the 42nd epoch of training.
