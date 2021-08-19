@@ -34,7 +34,7 @@ Model stats are as follows:
         <td>656.626</td>
         <td>591.734</td>
         <td>200MF (3.23 million)</td>
-        <td>[Classifier](https://tfhub.dev/adityakane2001/regnety200mf_classification/1), [Feature Extractor](https://tfhub.dev/adityakane2001/regnety200mf_feature_extractor/1)</td>
+        <td> <a href="https://tfhub.dev/adityakane2001/regnety200mf_classification/1">Classifier</a>, <a href="https://tfhub.dev/adityakane2001/regnety200mf_feature_extractor/1"> Feature Extractor </a></td>
     </tr>
     <tr>
         <td>RegNetY 400MF</td>
@@ -42,7 +42,7 @@ Model stats are as follows:
         <td>433.874</td>
         <td>703.797</td>
         <td>400MF (4.05 million)</td>
-        <td>[Classifier](https://tfhub.dev/adityakane2001/regnety400mf_classification/1), [Feature Extractor](https://tfhub.dev/adityakane2001/regnety400mf_feature_extractor/1)</td>
+        <td> <a href="https://tfhub.dev/adityakane2001/regnety400mf_classification/1">Classifier</a>, <a href="https://tfhub.dev/adityakane2001/regnety400mf_feature_extractor/1"> Feature Extractor </a></td>
     </tr>
     <tr>
         <td>RegNetY 600MF</td>
@@ -50,7 +50,7 @@ Model stats are as follows:
         <td>359.797</td>
         <td>921.56</td>
         <td>600MF (6.21 million)</td>
-        <td>[Classifier](https://tfhub.dev/adityakane2001/regnety600mf_classification/1), [Feature Extractor](https://tfhub.dev/adityakane2001/regnety600mf_feature_extractor/1)</td>
+        <td> <a href="https://tfhub.dev/adityakane2001/regnety600mf_classification/1">Classifier</a>, <a href="https://tfhub.dev/adityakane2001/regnety600mf_feature_extractor/1"> Feature Extractor </a></td>
     </tr>
     <tr>
         <td>RegNetY 800MF</td>
@@ -58,7 +58,7 @@ Model stats are as follows:
         <td>306.27</td>
         <td>907.439</td>
         <td>800MF (6.5 million)</td>
-        <td>[Classifier](https://tfhub.dev/adityakane2001/regnety800mf_classification/1), [Feature Extractor](https://tfhub.dev/adityakane2001/regnety800mf_feature_extractor/1)</td>
+        <td> <a href="https://tfhub.dev/adityakane2001/regnety800mf_classification/1">Classifier</a>, <a href="https://tfhub.dev/adityakane2001/regnety800mf_feature_extractor/1"> Feature Extractor </a></td>
     </tr>
 </table>
 
