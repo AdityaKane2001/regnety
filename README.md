@@ -95,9 +95,6 @@ from regnety.models import RegNetY
 # One function call and it's done!
 model = RegNetY(flops="200mf", load_checkpoint=True) #Loads pretrianed checkpoint
 
-#TODO: update code to load from checkpoints
-
-
 model.compile(...)
 model.fit(...)
 ```
