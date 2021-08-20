@@ -37,7 +37,8 @@ def _get_model_with_config(
 
 
 def RegNetY(
-    flops: str = "", input_shape: Union[List, Tuple] = None
+    flops: str = "", input_shape: Union[List, Tuple] = None,
+    load_weights=False
 ) -> tf.keras.Sequential:
     """
     Instantiates a RegNetY instance based on flops and input_shape furnished by user.
@@ -51,6 +52,8 @@ def RegNetY(
     Returns:
         A tf.keras.Sequential with RegNetY architecture.
     """
+
+    CKPT_URL = "https://github.com/AdityaKane2001/AdityaKane2001/releases/download/v0.1/"
 
     if flops not in ALLOWED_FLOPS:
         raise ValueError("`flops` must be one of " + str(ALLOWED_FLOPS))
@@ -76,4 +79,16 @@ def RegNetY(
 
     config = get_model_config(flops)
     model = _get_model_with_config(config)
+
+    if load_weights:
+        data_url = CKPT_URL + flops + "_best.data-00000-of-00001"
+        index_url = CKPT_URL + flops + "_best.index"
+
+        ckpt_path = tf.keras.utils.get_file(origin=data_url)
+        _ = tf.keras.utils.get_file(origin=index_url)
+
+        ckpt_path = ckpt_path.split(".")[:-1]
+
+        model.load_weights(ckpt_path)
+
     return model
