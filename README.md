@@ -85,7 +85,7 @@ model.fit(...)
 
 ### 2. Reloading checkpoints from training
 
-One can easily load checkpoints from any epoch during training for fine-grained control. For reference, all runs are available on [WandB](). Here's an example:
+One can easily load checkpoints for fine-grained control. For reference, all runs are available on [WandB](). Here's an example:
 
 ```python
 !pip install -q git+https://github.com/AdityaKane2001/regnety@main
