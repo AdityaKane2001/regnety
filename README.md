@@ -1,6 +1,6 @@
 # RegNetY
 
-<a href="https://colab.research.google.com/github/AdityaKane2001/regnety/blob/temp_readme/RegNetY_models_in_TF_2_5.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/AdityaKane2001/regnety/blob/main/RegNetY_models_in_TF_2_5.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## Introduction 
 
