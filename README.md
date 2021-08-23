@@ -2,18 +2,24 @@
 
 <a href="https://colab.research.google.com/github/AdityaKane2001/regnety/blob/main/RegNetY_models_in_TF_2_5.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)". 
+
 ## Introduction 
 
-This repository was developed during Google Summer of Code 2021 at TensorFlow. Project report is available [here](https://adityakane2001.github.io/opensource/gsoc2021report). 
-<br>
+RegNetY is the most commonly used architecture for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf). The architecture is as follows:   
+(Reference: [Designing Network Design Spaces](https://arxiv.org/abs/2003.13678))
 
-### Mentors:
-- Sayak Paul ([@sayakpaul](https://github.com/sayakpaul))
-- Morgan Roff ([@MorganR](https://github.com/MorganR))
 
-This repository contains the TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)".
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="439" height="200" >
 
-Model stats are as follows:
+
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="413" height="200" />
+
+
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/SEBlock.jpg?token=APLNNKT7FEZWSOUKMTPBD5TBFSK7Q" width="548" height="200" />
+
+
+Models trained using this code are uploaded on TFHub and can be found [here](https://tfhub.dev/adityakane2001/collections/regnety/1). Pretrained model stats are as follows:
 
 
 <table>
@@ -85,7 +91,7 @@ model.fit(...)
 
 ### 2. Reloading checkpoints from training
 
-One can easily load checkpoints for fine-grained control. For reference, all runs are available on [WandB](). Here's an example:
+One can easily load checkpoints for fine-grained control.  Here's an example:
 
 ```python
 !pip install -q git+https://github.com/AdityaKane2001/regnety@main
@@ -99,7 +105,24 @@ model.compile(...)
 model.fit(...)
 ```
 
+## What's next?
+
+Following is the list of things to be done in near future. 
+If you have any suggestions, feel free to open an issue or start a PR. 
+
+- [ ] Convert existing models to TFLite.
+- [ ] Implement and train more variants of RegNetY.
+- [ ] Training models using noisy student method.
+- [ ] Implement and train RegNet-{X, Z}
+
 
 ## Acknowledgement
+
+This repository was developed during Google Summer of Code 2021 at TensorFlow. Project report is available [here](https://adityakane2001.github.io/opensource/gsoc2021report). 
+<br>
+
+### Mentors:
+- Sayak Paul ([@sayakpaul](https://github.com/sayakpaul))
+- Morgan Roff ([@MorganR](https://github.com/MorganR))
 
 I thank Google Summer of Code and TensorFlow for granting me this opportunity. I am grateful to my mentors Sayak Paul and Morgan Roff for their continuous guidance and encouragement. Without them this project would not have been possible. I also thank TPU Research Cloud ([TRC](https://sites.research.google/trc/)) for providing high performance TPUs for model training. Lastly, I thank TensorFlow Hub for making the models widely available.  
