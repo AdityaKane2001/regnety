@@ -9,10 +9,10 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 RegNetY is the most commonly used architecture for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf). The architecture is as follows:   
 (Reference: [Designing Network Design Spaces](https://arxiv.org/abs/2003.13678))
 
-RegNet architecture:
+RegNet architecture:   
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="548" height="250" > 
 
-Y Block:
+Y Block:   
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
 
 
