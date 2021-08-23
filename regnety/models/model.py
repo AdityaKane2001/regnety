@@ -84,10 +84,10 @@ def RegNetY(
         data_url = CKPT_URL + flops + "_best.data-00000-of-00001"
         index_url = CKPT_URL + flops + "_best.index"
 
-        ckpt_path = tf.keras.utils.get_file(origin=data_url)
-        _ = tf.keras.utils.get_file(origin=index_url)
+        _ = tf.keras.utils.get_file(origin=data_url)
+        ckpt_path = tf.keras.utils.get_file(origin=index_url)
 
-        ckpt_path = ckpt_path.split(".")[:-1]
+        ckpt_path = ckpt_path.strip(".index")
 
         model.load_weights(ckpt_path)
 
