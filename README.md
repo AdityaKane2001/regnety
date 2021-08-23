@@ -11,7 +11,7 @@ RegNetY is the most commonly used architecture for self supervised methods like 
 
 RegNetY architecture | Y Block
 :-------------------------:|:-------------------------:
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="657" height="300" >  |  <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="618" height="300" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="548" height="250" >  |  <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
 
 
 
