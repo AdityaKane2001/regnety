@@ -13,10 +13,10 @@ RegNetY is the most commonly used architecture for self supervised methods like 
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="439" height="200" >
 
 
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="413" height="200" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="618" height="300" />
 
 
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/SEBlock.jpg?token=APLNNKT7FEZWSOUKMTPBD5TBFSK7Q" width="548" height="200" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/SEBlock.jpg?token=APLNNKT7FEZWSOUKMTPBD5TBFSK7Q" width="822" height="300" />
 
 
 Models trained using this code are uploaded on TFHub and can be found [here](https://tfhub.dev/adityakane2001/collections/regnety/1). Pretrained model stats are as follows:
