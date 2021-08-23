@@ -21,7 +21,7 @@ Y Block:
 
 
 
-Models trained using this code are uploaded on TFHub and can be found [here](https://tfhub.dev/adityakane2001/collections/regnety/1). Pretrained model stats are as follows:
+Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1). Pretrained model stats are as follows:
 
 
 <table>
@@ -70,9 +70,7 @@ Models trained using this code are uploaded on TFHub and can be found [here](htt
     </tr>
 </table>
 
-MF signifies million floating point operations.
-
-Reported accuracies are measured on ImageNet-1k validation dataset.
+MF signifies million floating point operations. Reported accuracies are measured on ImageNet-1k validation dataset.
 
 ## Usage
 
