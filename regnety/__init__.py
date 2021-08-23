@@ -3,4 +3,4 @@ from regnety import config
 from regnety import models
 from regnety import utils
 
-from models.blocks import *
+from regnety.models.blocks import *
