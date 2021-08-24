@@ -4,6 +4,23 @@
 
 TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)". 
 
+## About this repository
+
+This implementation of RegNet-Y is developed during Google Summer of Code 2021 with TensorFlow<sup>[2]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
+
+Y Block:   
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
+
+### Salient features:
+
+- Four variants of RegNet-Y implemented - 200MF, 400MF, 600MF, 800MF.
+- TPU compatible: All models are trainable on TPUs out-of-the box.
+- Inference speed: All models boast blazing fast inference speeds.
+- Fine-tuning: Models can be fine-tuned using gradual unfreezing and offer more granularity by using the released checkpoints.
+- Modular and reusable: Every part of the architecture is implemented by subclassing `tf.keras.Model`. This makes the individual parts of the models highly reusable. 
+- Trained on ImageNet-1k: Models in this repository are trained on ImageNet-1k and can be used for inference out-of-the box. These pretrained models are available on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1) and thus can be easily used with `hub.KerasLayer` and `hub.load`.
+
+
 ## Introduction to RegNets
 
 ### About the paper
@@ -22,26 +39,8 @@ RegNet architecture:
 
 RegNets have been the network of choice for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf) due to their remarkable scaling abilities. 
 
-## About this implementation
-
-This implementation of RegNet-Y is developed during Google Summer of Code 2021 with TensorFlow<sup>[2]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
-
-Y Block:   
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
-
-### Salient features:
-
-- Four variants of RegNet-Y implemented - 200MF, 400MF, 600MF, 800MF.
-- TPU compatible: All models are trainable on TPUs out-of-the box.
-- Inference speed: All models boast blazing fast inference speeds.
-- Fine-tuning: Models can be fine-tuned using gradual unfreezing and offer more granularity by using the released checkpoints.
-- Modular and reusable: Every part of the architecture is implemented by subclassing `tf.keras.Model`. This makes the individual parts of the models highly reusable. 
-- Trained on ImageNet-1k: Models in this repository are trained on ImageNet-1k and can be used for inference out-of-the box. These pretrained models are available on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1) and thus can be easily used with `hub.KerasLayer` and `hub.load`.
-
-
 
 ## Model statistics
-
 
 <table>
     <tr>
@@ -92,6 +91,8 @@ Y Block:
 MF signifies million floating point operations. Reported accuracies are measured on ImageNet-1k validation dataset.
 
 ## Usage
+
+<a href="https://colab.research.google.com/github/AdityaKane2001/regnety/blob/main/RegNetY_models_in_TF_2_5.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ### 1. Using TFHub
 
