@@ -144,8 +144,8 @@ model.fit(...)
 
 ## What's next?
 
-Following is the list of things to be done in near future. 
-If you have any suggestions, feel free to open an issue or start a PR. 
+This project is being actively worked on and developed. If you have any suggestions, feel free to open an issue or start a PR.  Following is the list of things to be done in near future. 
+
 
 - [ ] Improve accuracy of the models.
 - [ ] Convert existing models to TFLite.
