@@ -4,11 +4,12 @@
 
 TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)". 
 
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnetys.png?token=APLNNKW6U75LR3OZUUGE6DTBFXFZC"> 
+
 ## About this repository
 
 This implementation of RegNet-Y is my project for Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. 
 
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnetys.png?token=APLNNKW6U75LR3OZUUGE6DTBFXFZC"> 
 
 ### Salient features:
 
