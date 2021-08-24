@@ -4,30 +4,49 @@
 
 TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)". 
 
-## Introduction 
+## Introduction to RegNets
 
-RegNetY is the most commonly used architecture for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf). The architecture is as follows:   
-(Reference: [Designing Network Design Spaces](https://arxiv.org/abs/2003.13678))
+### About the paper
+
+The paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)" aims to systematically deduce the best model population starting from a model space that has no constraints. The paper also aims to find a best model population, as opposed to finding a singular best model as in works like [NASNet](https://arxiv.org/abs/1707.07012). 
+
+The outcome of this experiment is a family of networks which comprises of models with various computational costs. The user can choose a particular architecture based upon the need. 
+
+### About the models
+
+Every model of the RegNet family consists of four Stages. Each Stage consists of numerous Blocks. The architecture of this Block is fixed, and three major variants of this Block are available: X Block, Y Block, Z Block<sup>[1]</sup>. Other variants can be seen in the paper, and the authors state that the model deduction method is robust and RegNets generalize well to these block types.    
+The number of Blocks and their channel width in each Stage is determined by a simple quantization rule put forth in the paper. More on that in this [blog](https://medium.com/visionwizard/simple-powerful-and-fast-regnet-architecture-from-facebook-ai-research-6bbc8818fb44).
 
 RegNet architecture:   
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="548" height="250" > 
 
+RegNets have been the network of choice for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf) due to their remarkable scaling abilities. 
+
+## About this implementation
+
+This implementation of RegNet-Y is developed during Google Summer of Code 2021 with TensorFlow<sup>[2]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
+
 Y Block:   
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
 
+### Salient features:
+
+- Four variants of RegNet-Y implemented - 200MF, 400MF, 600MF, 800MF.
+- TPU compatible: All models are trainable on TPUs out-of-the box.
+- Inference speed: All models boast blazing fast inference speeds.
+- Fine-tuning: Models can be fine-tuned using gradual unfreezing and offer more granularity by using the released checkpoints.
+- Modular and reusable: Every part of the architecture is implemented by subclassing `tf.keras.Model`. This makes the individual parts of the models highly reusable. 
+- Trained on ImageNet-1k: Models in this repository are trained on ImageNet-1k and can be used for inference out-of-the box. These pretrained models are available on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1) and thus can be easily used with `hub.KerasLayer` and `hub.load`.
 
 
 
-
-
-
-Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1). Pretrained model stats are as follows:
+## Model statistics
 
 
 <table>
     <tr>
         <td rowspan="2">Model Name</td>
-        <td rowspan="2">Accuracy</td>
+        <td rowspan="2">Accuracy (Ours/ Paper) </td>
         <td colspan="2">Inference speed (images per second)</td>
         <td rowspan="2">FLOPs (Number of parameters)</td>
         <td rowspan="2">Link</td>
@@ -38,7 +57,7 @@ Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityak
     </tr>
     <tr>
         <td>RegNetY 200MF</td>
-        <td>67.54%</td>
+        <td>67.54% / 70.3%</td>
         <td>656.626</td>
         <td>591.734</td>
         <td>200MF (3.23 million)</td>
@@ -46,7 +65,7 @@ Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityak
     </tr>
     <tr>
         <td>RegNetY 400MF</td>
-        <td>70.19%</td>
+        <td>70.19% / 74.1%</td>
         <td>433.874</td>
         <td>703.797</td>
         <td>400MF (4.05 million)</td>
@@ -54,7 +73,7 @@ Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityak
     </tr>
     <tr>
         <td>RegNetY 600MF</td>
-        <td>73.18%</td>
+        <td>73.18% / 75.5%</td>
         <td>359.797</td>
         <td>921.56</td>
         <td>600MF (6.21 million)</td>
@@ -62,7 +81,7 @@ Models trained using this code are uploaded on [TFHub](https://tfhub.dev/adityak
     </tr>
     <tr>
         <td>RegNetY 800MF</td>
-        <td>73.94%</td>
+        <td>73.94% / 76.3%</td>
         <td>306.27</td>
         <td>907.439</td>
         <td>800MF (6.5 million)</td>
@@ -105,11 +124,17 @@ model.compile(...)
 model.fit(...)
 ```
 
+## Known caveats
+
+- The models achieve lower accuracies than proposed in the paper. After substantial scrutiny we conclude that this is due to the difference in internal working of TensorFlow and PyTorch. We are still trying to increase the accuracy of these models using different training methods.
+- These models cannot be trained on a CPU. One can run inference on the models by strictly using batch_size=1. The models function as expected on GPUs and TPUs. This is because grouped convolutions are not supported for training by TensorFlow (as of 2.6.0).  
+
 ## What's next?
 
 Following is the list of things to be done in near future. 
 If you have any suggestions, feel free to open an issue or start a PR. 
 
+- [ ] Improve accuracy of the models.
 - [ ] Convert existing models to TFLite.
 - [ ] Implement and train more variants of RegNetY.
 - [ ] Training models using noisy student method.
@@ -126,3 +151,8 @@ This repository was developed during Google Summer of Code 2021 at TensorFlow. P
 - Morgan Roff ([@MorganR](https://github.com/MorganR))
 
 I thank Google Summer of Code and TensorFlow for granting me this opportunity. I am grateful to my mentors Sayak Paul and Morgan Roff for their continuous guidance and encouragement. Without them this project would not have been possible. I also thank TPU Research Cloud ([TRC](https://sites.research.google/trc/)) for providing high performance TPUs for model training. Lastly, I thank TensorFlow Hub for making the models widely available.  
+
+## References
+
+[1] Z Block is proposed in the paper "[Fast and Accurate Model Scaling](https://arxiv.org/abs/2103.06877)".   
+[2] Project report [here](https://adityakane2001.github.io/opensource/gsoc2021report). 
