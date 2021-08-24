@@ -6,7 +6,7 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 
 ## About this repository
 
-This implementation of RegNet-Y is my project for Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
+This implementation of RegNet-Y is my project for Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. 
 
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnetys.png?token=APLNNKW6U75LR3OZUUGE6DTBFXFZC"> 
 
