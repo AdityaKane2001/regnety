@@ -130,7 +130,7 @@ One can easily load checkpoints for fine-grained control.  Here's an example:
 from regnety.models import RegNetY
 
 # One function call and it's done!
-model = RegNetY(flops="200mf", load_checkpoint=True) #Loads pretrianed checkpoint
+model = RegNetY(flops="200mf", load_checkpoint=True) #Loads pretrained checkpoint
 
 model.compile(...)
 model.fit(...)
