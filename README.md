@@ -9,7 +9,7 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 This implementation of RegNet-Y is developed during Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
 
 Y Block:   
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="515" height="250" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="588" height="250" />
 
 ### Salient features:
 
