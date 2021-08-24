@@ -8,8 +8,7 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 
 This implementation of RegNet-Y is my project for Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. The models were trained on Google Cloud TPUs granted by [TRC](https://sites.research.google/trc/). More on that at the end.   
 
-Y Block:   
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="588" height="250" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnetys.png?token=APLNNKW6U75LR3OZUUGE6DTBFXFZC"> 
 
 ### Salient features:
 
@@ -20,6 +19,14 @@ Y Block:
 - Modular and reusable: Every part of the architecture is implemented by subclassing `tf.keras.Model`. This makes the individual parts of the models highly reusable. 
 - Trained on ImageNet-1k: Models in this repository are trained on ImageNet-1k and can be used for inference out-of-the box. These pretrained models are available on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1) and thus can be easily used with `hub.KerasLayer` and `hub.load`.
 
+## Table of contents
+
+1. [Introduction to RegNets](https://github.com/AdityaKane2001/regnety#introduction-to-regnets)
+2. [Model statistics](https://github.com/AdityaKane2001/regnety#model-statistics)
+3. [Usage](https://github.com/AdityaKane2001/regnety#usage)
+4. [Known caveats](https://github.com/AdityaKane2001/regnety#known-caveats)
+5. [What's next?](https://github.com/AdityaKane2001/regnety#whats-next)
+6. [Acknowledgement](https://github.com/AdityaKane2001/regnety#acknowledgemnt)
 
 ## Introduction to RegNets
 
@@ -33,11 +40,14 @@ The outcome of this experiment is a family of networks which comprises of models
 
 Every model of the RegNet family consists of four Stages. Each Stage consists of numerous Blocks. The architecture of this Block is fixed, and three major variants of this Block are available: X Block, Y Block, Z Block<sup>[2]</sup>. Other variants can be seen in the paper, and the authors state that the model deduction method is robust and RegNets generalize well to these block types.    
 The number of Blocks and their channel width in each Stage is determined by a simple quantization rule put forth in the paper. More on that in this [blog](https://medium.com/visionwizard/simple-powerful-and-fast-regnet-architecture-from-facebook-ai-research-6bbc8818fb44).
+RegNets have been the network of choice for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf) due to their remarkable scaling abilities. 
 
 RegNet architecture:   
 <img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="588" height="250" > 
 
-RegNets have been the network of choice for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf) due to their remarkable scaling abilities. 
+Y Block:   
+<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="588" height="250" />
+
 
 
 ## Model statistics
