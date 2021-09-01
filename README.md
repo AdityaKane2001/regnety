@@ -4,7 +4,7 @@
 
 TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Design Spaces](https://arxiv.org/abs/2003.13678)". 
 
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnetys.png?token=APLNNKW6U75LR3OZUUGE6DTBFXFZC"> 
+<img src="https://raw.githubusercontent.com/AdityaKane2001/regnety/main/images/regnetys.png"> 
 
 ## About this repository
 
@@ -44,10 +44,10 @@ The number of Blocks and their channel width in each Stage is determined by a si
 RegNets have been the network of choice for self supervised methods like [SEER](https://arxiv.org/pdf/2103.01988.pdf) due to their remarkable scaling abilities. 
 
 RegNet architecture:   
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/regnety_architecture.png?token=APLNNKU47VKUQENVQPB5DB3BFSGJ2" width="588" height="250" > 
+<img src="https://raw.githubusercontent.com/AdityaKane2001/regnety/main/images/regnety_architecture.png" width="588" height="250" > 
 
 Y Block:   
-<img src="https://raw.githubusercontent.com/AdityaKane2001/archive/main/YBlock.jpg?token=APLNNKTOBNXVBHPYTBICS3TBFSK7U" width="588" height="250" />
+<img src="https://raw.githubusercontent.com/AdityaKane2001/regnety/main/images/YBlock.jpg" width="588" height="250" />
 
 
 
