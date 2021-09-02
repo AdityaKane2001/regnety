@@ -348,7 +348,7 @@ class Head(layers.Layer):
         super(Head, self).__init__(name='Head')
 
         self.num_classes = num_classes
-        self.gap = layers.GlobalAveragePooling2D(name='Head_global_avg_pool')
+        self.gap = layers.GlobalAveragePooling2D(name='Head_global_max_pool')
         self.fc = layers.Dense(
             self.num_classes, name='Head_fc', kernel_initializer=DenseInitializer())
 

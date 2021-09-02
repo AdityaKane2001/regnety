@@ -90,7 +90,7 @@ def get_preprocessing_config(
     augment_fn: Union[str, Callable] = "default",
     num_classes: int = 1000,
     color_jitter: bool = False,
-    mixup: bool = True,
+    mixup: bool = False,
 ):
 
     """

@@ -13,7 +13,60 @@ logging.basicConfig(
     datefmt="%d-%b-%y %H:%M:%S",
     level=logging.INFO,
 )
+class SAMModel(tf.keras.Model):
+    #Credits: Sayak Paul: 
+    #https://github.com/sayakpaul/Sharpness-Aware-Minimization-TensorFlow/blob/main/SAM.ipynb
+    def __init__(self, resnet_model, rho=0.05):
+        """
+        p, q = 2 for optimal results as suggested in the paper
+        (Section 2)
+        """
+        super(SAMModel, self).__init__()
+        self.resnet_model = resnet_model
+        self.rho = rho
 
+    def train_step(self, data):
+        (images, labels) = data
+        e_ws = []
+        with tf.GradientTape() as tape:
+            predictions = self.resnet_model(images)
+            loss = self.compiled_loss(labels, predictions)
+        trainable_params = self.resnet_model.trainable_variables
+        gradients = tape.gradient(loss, trainable_params)
+        grad_norm = self._grad_norm(gradients)
+        scale = self.rho / (grad_norm + 1e-12)
+        
+        with tf.GradientTape() as tape:
+            predictions = self.resnet_model(images)
+            loss = self.compiled_loss(labels, predictions)    
+        for (grad, param) in zip(gradients, trainable_params):
+            e_w = grad * scale
+            param.assign_add(e_w)
+            e_ws.append(e_w)
+        sam_gradients = tape.gradient(loss, trainable_params)
+        for (param, e_w) in zip(trainable_params, e_ws):
+            param.assign_sub(e_w)
+        
+        self.optimizer.apply_gradients(
+            zip(sam_gradients, trainable_params))
+
+        self.compiled_metrics.update_state(labels, predictions)
+        return {m.name: m.result() for m in self.metrics}
+
+    def test_step(self, data):
+        (images, labels) = data
+        predictions = self.resnet_model(images, training=False)
+        loss = self.compiled_loss(labels, predictions)
+        self.compiled_metrics.update_state(labels, predictions)
+        return {m.name: m.result() for m in self.metrics}
+
+    def _grad_norm(self, gradients):
+        norm = tf.norm(
+            tf.stack([
+                tf.norm(grad) for grad in gradients if grad is not None
+            ])
+        )
+        return norm
 
 def get_optimizer(cfg: regnety.regnety.config.config.TrainConfig):
     if cfg.optimizer == "sgd":
@@ -116,7 +169,9 @@ def top1error(y_true, y_pred):
 
 def make_model(flops, train_cfg):
     optim = get_optimizer(train_cfg)
+#     optim = tf.keras.optimizers.Nadam(learning_rate=train_cfg.base_lr)
     model = regnety.regnety.models.model.RegNetY(flops)
+#     model = SAMModel(model)
     model.compile(
         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
         optimizer=optim,
@@ -154,3 +209,4 @@ def connect_to_tpu(tpu_address: str = None):
             logging.warning("No TPU detected.")
             mirrored_strategy = tf.distribute.MirroredStrategy()
             return None, mirrored_strategy
+

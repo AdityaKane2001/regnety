@@ -17,7 +17,7 @@ from regnety.regnety.config.config import (
     ALLOWED_FLOPS
 )
 
-
+# python ./regnety/regnety/train.py -f="200mf" 
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr", "--tpu_address", type=str,
@@ -55,8 +55,8 @@ if flops not in ALLOWED_FLOPS:
 cluster_resolver, strategy = tutil.connect_to_tpu(tpu_address)
 
 train_cfg = get_train_config(
-    optimizer="adamw",
-    base_lr=0.001 * strategy.num_replicas_in_sync,
+    optimizer="sgd",
+    base_lr= 0.1,
     warmup_epochs=5,
     warmup_factor=0.1,
     total_epochs=100,
@@ -82,17 +82,20 @@ val_prep_cfg = get_preprocessing_config(
 
 
 logging.info(f"Training options detected: {train_cfg}")
+logging.info(f"Flops: {flops}")
 logging.info("Preprocessing options detected.")
 logging.info(
     f"Training on TFRecords: {train_prep_cfg.tfrecs_filepath[0]} to {train_prep_cfg.tfrecs_filepath[-1]}")
 logging.info(
     f"Validating on TFRecords: {val_prep_cfg.tfrecs_filepath[0]} to {val_prep_cfg.tfrecs_filepath[-1]}")
 
-with strategy.scope():
+
+with strategy.scope():    
     model = tutil.make_model(flops, train_cfg)
     model.load_weights(log_location + "/init_weights/" + flops.upper())
+#     model.load_weights("gs://adityakane-train/models/08_25_2021_17h52m/all_model_epoch_55_val_loss_2.95")
     logging.info("Model loaded")
-#     model.load_weights("gs://adityakane-train/models/07_29_2021_06h22m/all_model_epoch_94_val_loss_1.36")
+    
 
 train_ds = ImageNet(train_prep_cfg).make_dataset()
 val_ds = ImageNet(val_prep_cfg).make_dataset()
@@ -114,7 +117,7 @@ trial_callbacks = [
 callbacks = trial_callbacks if trial else tutil.get_callbacks(
     train_cfg, date_time)
 
-# count = 94 * 1250
+# count = 55 * 1250
 # callbacks[0].count = count
 
 history = model.fit(
@@ -122,6 +125,7 @@ history = model.fit(
    	epochs=train_cfg.total_epochs,
    	validation_data=val_ds,
    	callbacks=callbacks,
+#     initial_epoch=55
 )
 
 with tf.io.gfile.GFile(os.path.join(train_cfg.log_dir, "history_%s.json" % date_time), "a+") as f:
