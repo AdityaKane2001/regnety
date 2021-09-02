@@ -4,7 +4,7 @@
 import tensorflow as tf
 
 from tensorflow.keras import layers
-from regnety.regnety.models.utils import ConvInitializer, DenseInitializer
+from regnety.models.utils import ConvInitializer, DenseInitializer
 
 # Contains:
 # 0. PreStem
@@ -22,7 +22,7 @@ _VAR = tf.constant([0.052441, 0.050176, 0.050625])
 
 
 
-class PreStem(layers.Layer):
+class PreStem(tf.keras.Model):
     """Contains preprocessing layers which are to be included in the model.
     
     Args: 
@@ -64,7 +64,7 @@ class PreStem(layers.Layer):
         return config
 
 
-class Stem(layers.Layer):
+class Stem(tf.keras.Model):
     """Class to initiate stem architecture from the paper (see `Reference` 
     above): `stride-two 3×3 conv with w0 = 32 output filters`.
     
@@ -95,7 +95,7 @@ class Stem(layers.Layer):
         return config
 
 
-class SE(layers.Layer):
+class SE(tf.keras.Model):
     """
     Squeeze and Excite block. Takes se_ratio and in_filters as arguments. 
     Arxiv link: https://arxiv.org/abs/1709.01507?spm=a2c41.13233144.0.0
@@ -122,11 +122,13 @@ class SE(layers.Layer):
         )
         self.squeeze_reshape = layers.Reshape((1, 1, self.out_filters))
         self.squeeze_conv = layers.Conv2D(
-            self.se_filters, (1, 1), activation="relu", name=self.pref + "_squeeze_conv",
+            self.se_filters, (1, 1), activation="relu",
+            name=self.pref + "_squeeze_conv",
             kernel_initializer=ConvInitializer()
         )
         self.excite_conv = layers.Conv2D(
-            self.out_filters, (1, 1), activation="sigmoid", name=self.pref + "_excite_conv",
+            self.out_filters, (1, 1), activation="sigmoid", 
+            name=self.pref + "_excite_conv",
             kernel_initializer=ConvInitializer()
         )
 
@@ -150,7 +152,7 @@ class SE(layers.Layer):
         return config
 
 
-class YBlock(layers.Layer):
+class YBlock(tf.keras.Model):
     """
     Y Block in RegNetY structure. 
     IMPORTANT: Grouped convolutions are only supported by keras on GPU. 
@@ -272,7 +274,7 @@ class YBlock(layers.Layer):
         return config
 
 
-class Stage(layers.Layer):
+class Stage(tf.keras.Model):
     """
     Class for RegNetY stage. A single stage consists of `depth` number of 
     YBlocks. Such four stages are connected sequantially to create `body` 
@@ -336,7 +338,7 @@ class Stage(layers.Layer):
         return config
 
 
-class Head(layers.Layer):
+class Head(tf.keras.Model):
     """
     Head for all RegNetY models. Returns logits.
 
@@ -350,7 +352,9 @@ class Head(layers.Layer):
         self.num_classes = num_classes
         self.gap = layers.GlobalAveragePooling2D(name='Head_global_max_pool')
         self.fc = layers.Dense(
-            self.num_classes, name='Head_fc', kernel_initializer=DenseInitializer())
+            self.num_classes, 
+            name='Head_fc', 
+            kernel_initializer=DenseInitializer())
 
     def call(self, inputs):
         x = self.gap(inputs)

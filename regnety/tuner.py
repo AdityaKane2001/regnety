@@ -4,14 +4,14 @@ ImageNette (smaller version of ImageNet). We used those hyperparameters as a
 starting point for our experiments on the larger ImageNet dataset.
 """
 
-from regnety.regnety.config.config import (
+from regnety.config.config import (
     get_train_config,
     get_preprocessing_config,
     ALLOWED_FLOPS,
 )
-from regnety.regnety.utils import train_utils as tutil
-from regnety.regnety.dataset.imagenet import ImageNet
-from regnety.regnety.models.model import RegNetY
+from regnety.utils import train_utils as tutil
+from regnety.dataset.imagenet import ImageNet
+from regnety.models.model import RegNetY
 from wandb.keras import WandbCallback
 from datetime import datetime
 import tensorflow_addons as tfa
@@ -70,7 +70,7 @@ def make_model(hp, strategy=tpu_strat):
     optim = tfa.optimizers.AdamW(weight_decay=hp_weight_decay, learning_rate=hp_base_lr)
 
     with strategy.scope():
-        model = regnety.regnety.models.model.RegNetY(FLOPS)
+        model = regnety.models.model.RegNetY(FLOPS)
         model.compile(
             loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
             optimizer=optim,

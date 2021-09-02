@@ -7,8 +7,8 @@ import random
 import json
 import math
 
-from regnety.regnety.utils.image_utils import *
-from regnety.regnety.utils.beam_utils import *
+from regnety.utils.image_utils import *
+from regnety.utils.beam_utils import *
 from typing import Tuple, List
 from collections import namedtuple
 from apache_beam.options.pipeline_options import PipelineOptions

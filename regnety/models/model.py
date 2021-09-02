@@ -1,7 +1,9 @@
+"""Contains scripts to instantiate RegNetY architecture."""
+
 import tensorflow as tf
 
-from regnety.regnety.config import get_model_config, ALLOWED_FLOPS
-from regnety.regnety.models.blocks import PreStem, Stem, Stage, Head
+from regnety.config import get_model_config, ALLOWED_FLOPS
+from regnety.models.blocks import PreStem, Stem, Stage, Head
 
 from typing import List, Tuple, Union
 

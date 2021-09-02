@@ -4,7 +4,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 import tensorflow as tf
 import unittest
-from regnety.regnety.models.blocks import SE, YBlock
+from regnety.models.blocks import SE, YBlock
 
 tf.keras.backend.clear_session()
 

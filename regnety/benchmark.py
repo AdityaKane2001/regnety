@@ -9,10 +9,10 @@ import math
 
 from datetime import datetime
 from wandb.keras import WandbCallback
-from regnety.regnety.models.model import RegNetY
-from regnety.regnety.dataset.imagenet import ImageNet
-from regnety.regnety.utils import train_utils as tutil
-from regnety.regnety.config.config import (
+from regnety.models.model import RegNetY
+from regnety.dataset.imagenet import ImageNet
+from regnety.utils import train_utils as tutil
+from regnety.config.config import (
     get_train_config,
     get_preprocessing_config,
     ALLOWED_FLOPS
@@ -21,21 +21,20 @@ from regnety.regnety.config.config import (
 
 parser = argparse.ArgumentParser(description="Benchmark RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
-parser.add_argument("-m", "--model_location", help="Model checkpoint location")
+parser.add_argument("-m", "--model_location", help="SavedModel directory path")
+parser.add_argument("-tfrec", "--tfrecords_bucket_path", help="Path to TFRecords bucket. eg. gs://abcd.")
 
 args = parser.parse_args()
 flops = args.flops
 model_location = args.model_location
-region = "us"
+imgnet_location = args.tfrecords_bucket_path
+
 BATCH_SIZE = 1024
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
                     datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
 
 logging.info("Benchmarking on ImageNet validation dataset")
-
-imgnet_location = "gs://adityakane-imagenet-tfrecs" if region == "us" else "gs://ak-europe-imagenet"
-log_location = "gs://adityakane-train" if region == "us" else "gs://ak-europe-train"
 
 val_tfrecs_filepath = tf.io.gfile.glob(imgnet_location + "/valid_*.tfrecord")
 
@@ -60,12 +59,14 @@ val_ds = val_ds.repeat()
 
 #warmup device, iterator
 model.predict(val_ds, steps=10)
+logging.info("Warmed up.")
 
 logging.info("Warmed up")
 
 logging.info("Running benchmark")
 NUM_IMAGES = BATCH_SIZE * 256
 
+logging.info("Running benchmark.")
 start = time.time()
 model.predict(val_ds, steps=256)
 end = time.time()

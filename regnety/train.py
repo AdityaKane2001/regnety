@@ -1,3 +1,5 @@
+"""Script for training RegNetY. Supports TPU training."""
+
 import tensorflow as tf
 import argparse
 import os
@@ -5,14 +7,16 @@ import json
 import wandb
 import logging
 import math
+import yaml
 
 from datetime import datetime
 from wandb.keras import WandbCallback
-from regnety.regnety.models.model import RegNetY
-from regnety.regnety.dataset.imagenet import ImageNet
-from regnety.regnety.utils import train_utils as tutil
-from regnety.regnety.config.config import (
+from regnety.models.model import RegNetY
+from regnety.dataset.imagenet import ImageNet
+from regnety.utils import train_utils as tutil
+from regnety.config.config import (
     get_train_config,
+    get_train_config_from_yaml,
     get_preprocessing_config,
     ALLOWED_FLOPS
 )
@@ -21,26 +25,28 @@ from regnety.regnety.config.config import (
 parser = argparse.ArgumentParser(description="Train RegNetY")
 parser.add_argument("-f", "--flops", type=str, help="FLOP variant of RegNetY")
 parser.add_argument("-taddr", "--tpu_address", type=str,
-                    help="Network address of TPU clsuter", default=None)
-parser.add_argument("-tfp", "--tfrecs_path_pattern", type=str,
-                    help="GCS bucket path pattern for tfrecords")
+                    help="Network address of TPU cluster", default=None)
+parser.add_argument("-traintfrec", "--train_tfrecs_path_pattern", type=str,
+                    help="Path for tfrecords. eg. gs://imagenet/*.tfrecord.")
+parser.add_argument("-validtfrec", "--valid_tfrecs_path_pattern", type=str,
+                    help="Path for tfrecords. eg. gs://imagenet/*.tfrecord.")
+parser.add_argument("-log","--log_location", type=str,
+                    help="Path to store logs in")
 parser.add_argument("-trial", "--trial_run", action="store_true")
-parser.add_argument("-r", "--region", type=str)
+parser.add_argument("-yaml","train_config_yaml", type=str, default=None, help="Train config yaml file if need to override defaults.")
+parser.add_argument("-wandbproject", "wandb_project_id", type=str, default="", help="Project ID for wandb logging")
+parser.add_argument("-wandbuser", "wandb_user_id", type=str, default="", help="User ID for wandb logging")
 
 args = parser.parse_args()
-flops = args.flops
+flops = args.flops.lower()
 tpu_address = args.tpu_address
-tfrecs_filepath = tf.io.gfile.glob(args.tfrecs_path_pattern)
-region = args.region
-
-imgnet_location = "gs://adityakane-imagenet-tfrecs" if region=="us" else "gs://ak-europe-imagenet"
-log_location = "gs://adityakane-train" if region=="us" else "gs://ak-europe-train"
-
-tfrecs_filepath.sort()
-one_percent = math.ceil(len(tfrecs_filepath) / 100)
-train_tfrecs_filepath = tf.io.gfile.glob(imgnet_location + "/train_*.tfrecord")
-val_tfrecs_filepath = tf.io.gfile.glob(imgnet_location + "/valid_*.tfrecord")
+train_tfrecs_filepath = tf.io.gfile.glob(args.train_tfrecs_path_pattern)
+val_tfrecs_filepath = tf.io.gfile.glob(args.valid_tfrecs_path_pattern)
+log_location = args.log_location
+yaml_path = args.train_config_yaml
 trial = args.trial_run
+wandbproject = args.wandb_project_id
+wandbuser = args.wandb_user_id
 
 logging.basicConfig(format="%(asctime)s %(levelname)s : %(message)s",
                     datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO)
@@ -80,7 +86,6 @@ val_prep_cfg = get_preprocessing_config(
     mixup=False
 )
 
-
 logging.info(f"Training options detected: {train_cfg}")
 logging.info(f"Flops: {flops}")
 logging.info("Preprocessing options detected.")
@@ -95,7 +100,6 @@ with strategy.scope():
     model.load_weights(log_location + "/init_weights/" + flops.upper())
 #     model.load_weights("gs://adityakane-train/models/08_25_2021_17h52m/all_model_epoch_55_val_loss_2.95")
     logging.info("Model loaded")
-    
 
 train_ds = ImageNet(train_prep_cfg).make_dataset()
 val_ds = ImageNet(val_prep_cfg).make_dataset()
@@ -103,8 +107,8 @@ val_ds = ImageNet(val_prep_cfg).make_dataset()
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%Hh%Mm")
 
-wandb.init(entity="compyle", project="regnety",
-           job_type="train", name="Final_" + date_time + "_" + flops.upper())
+wandb.init(entity=wandbuser, project=wandbproject,
+           job_type="train", name="regnety_" + date_time + "_" + flops.upper())
 
 trial_callbacks = [
     tf.keras.callbacks.LearningRateScheduler(
@@ -116,6 +120,7 @@ trial_callbacks = [
 
 callbacks = trial_callbacks if trial else tutil.get_callbacks(
     train_cfg, date_time)
+
 
 # count = 55 * 1250
 # callbacks[0].count = count
