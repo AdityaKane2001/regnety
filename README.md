@@ -27,7 +27,7 @@ This implementation of RegNet-Y is my project for Google Summer of Code 2021 wit
 3. [Usage](https://github.com/AdityaKane2001/regnety#usage)
 4. [Known caveats](https://github.com/AdityaKane2001/regnety#known-caveats)
 5. [What's next?](https://github.com/AdityaKane2001/regnety#whats-next)
-6. [Acknowledgement](https://github.com/AdityaKane2001/regnety#acknowledgemnt)
+6. [Acknowledgement](https://github.com/AdityaKane2001/regnety#acknowledgement)
 
 ## Introduction to RegNets
 
