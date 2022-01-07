@@ -1,76 +1,111 @@
+"""Contains preprocessing functions for RegNetY"""
+
+from typing import Union, Callable, Tuple, List, Type
+from datetime import datetime
+import math
 import tensorflow as tf
+import tensorflow_addons as tfa
 import os
-from official.vision.image_classification.augment import RandAugment
+import tensorflow_probability as tfp
+
+tfd = tfp.distributions
+
+
+AUTO = tf.data.AUTOTUNE
+
+_TFRECS_FORMAT = {
+    "image": tf.io.FixedLenFeature([], tf.string),
+    "height": tf.io.FixedLenFeature([], tf.int64),
+    "width": tf.io.FixedLenFeature([], tf.int64),
+    "filename": tf.io.FixedLenFeature([], tf.string),
+    "label": tf.io.FixedLenFeature([], tf.int64),
+    "synset": tf.io.FixedLenFeature([], tf.string),
+}
 
 
 class ImageNet:
-    """Class for all ImageNet related functions, includes TFRecords loading,
-    preprocessing and augmentations. TFRecords must follow the format given
-    below.
+    """Class for all ImageNet data-related functions, including TFRecord
+    parsing along with augmentation transforms. TFRecords must follow the format
+    given in _TFRECS_FORMAT. If not specified otherwise in `augment_fn` argument, following
+    augmentations are applied to the dataset:
+    - Color Jitter (random brightness, hue, saturation, contrast, flip)
+        This augmentation is inspired by SimCLR (https://arxiv.org/abs/2002.05709).
+        The strength parameter is set to 5, which controlsthe effect of augmentations.
+    - Random rotate
+    - Random crop and resize
+
+    If `augment_fn` argument is not set to the string "default", it should be set to
+    a callable object. That callable must take exactly two arguments: `image` and `target`
+    and must return two values corresponding to the same.
+
+    If `augment_fn` argument is 'val', then the images will be center cropped to 224x224.
 
     Args:
-        tfrecs_filepath: list of filepaths of all TFRecords files
-        batch_size: batch_size for the Dataset
-        image_size: final image size of the images in the dataset
-        augment_fn: function to apply to dataset after loading raw TFrecords
-                    'default' implies following augmentations will be applied:
-                    - Random sized crop (train only)
-                    - Scale and center crop
-                    - RandAugment (TODO)
-        num_classes: number of classes
-        randaugment: True of RandAugment is to be applied
-
-    Class attributes:
-        TFRECS_FORMAT: Expected format of TFRecords stored.
-        _MEAN: Channel wise mean for ImageNet
-        _STD: Channel wise standard deviation for ImageNet
-
+       cfg: regnety.config.config.PreprocessingConfig instance.
+       no_aug: If True, overrides cfg and returns images as they are. Requires cfg object 
+            to determine batch_size, image_size, etc.
     """
 
-    TFRECS_FORMAT = {
-        "image": tf.io.FixedLenFeature([], tf.string),
-        "height": tf.io.FixedLenFeature([], tf.int64),
-        "width": tf.io.FixedLenFeature([], tf.int64),
-        "filename": tf.io.FixedLenFeature([], tf.string),
-        "label": tf.io.FixedLenFeature([], tf.int64),
-        "synset": tf.io.FixedLenFeature([], tf.string),
-    }
+    def __init__(self, cfg, no_aug=False):
 
-    _MEAN = tf.constant([0.485, 0.456, 0.406])
-    _STD = tf.constant([0.229, 0.224, 0.225])
+        self.tfrecs_filepath = cfg.tfrecs_filepath
+        self.batch_size = cfg.batch_size
+        self.image_size = cfg.image_size
+        self.crop_size = cfg.crop_size
+        self.resize_pre_crop = cfg.resize_pre_crop
+        self.augment_fn = cfg.augment_fn
+        self.num_classes = cfg.num_classes
+        self.color_jitter = cfg.color_jitter
+        self.mixup = cfg.mixup
+        self.area_factor = 0.08
+        self.no_aug = no_aug
+        eigen_vals = tf.constant(
+            [[0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+             [0.2175, 0.0188, 0.0045],
+            ]
+        )
+        self.eigen_vals = tf.stack([eigen_vals] * self.batch_size, axis=0 )
+        eigen_vecs = tf.constant(
+                     [
+                        [-0.5675, 0.7192, 0.4009],
+                        [-0.5808, -0.0045, -0.8140],
+                        [-0.5836, -0.6948, 0.4203],
+                    ]
+                )
+        self.eigen_vecs = tf.stack([eigen_vecs] * self.batch_size, axis=0)
 
-    def __init__(
-        self,
-        tfrecs_filepath=None,
-        batch_size=128,
-        image_size=224,
-        augment_fn="default",
-        num_classes=10,
-        randaugment=True,
-    ):
+        if (self.tfrecs_filepath is None) or (self.tfrecs_filepath == []):
+            raise ValueError("List of TFrecords paths cannot be None or empty")
 
-        if tfrecs_filepath is None:
-            raise ValueError("List of TFrecords paths cannot be None")
-        self.tfrecs_filepath = tfrecs_filepath
-        self.batch_size = batch_size
-        self.image_size = image_size
-        self.augment_fn = augment_fn
-        self.num_classes = num_classes
-        self.randaugment = randaugment
-        if self.randaugment:
-            self.augmenter = RandAugment(magnitude=5)
+        if self.augment_fn == "default":
+            self.default_augment = True
+            self.val_augment = False
+            self.strength = 5
+        elif self.augment_fn == "val":
+            self.default_augment = False
+            self.val_augment = True
+            self.strength = -1
+        else:
+            self.default_augment = False
+            self.val_augment = False
+            self.strength = -1
 
-    def decode_example(self, example):
-        """Decodes an example to its individual attributes
+    def decode_example(self, example_: tf.Tensor) -> dict:
+        """Decodes an example to its individual attributes.
 
         Args:
             example: A TFRecord dataset example.
 
         Returns:
             Dict containing attributes from a single example. Follows
-            the same names as TFRECORDS_FORMAT.
+            the same names as _TFRECS_FORMAT.
         """
-        image = tf.cast(tf.io.decode_jpeg(example["image"]), tf.float32)
+
+        example = tf.io.parse_example(example_, _TFRECS_FORMAT)
+        image = tf.reshape(
+            tf.io.decode_jpeg(example["image"]), (self.image_size, self.image_size, 3)
+        )
         height = example["height"]
         width = example["width"]
         filename = example["filename"]
@@ -85,184 +120,269 @@ class ImageNet:
             "synset": synset,
         }
 
-    def _read_tfrecs(self):
+    def _read_tfrecs(self) -> Type[tf.data.Dataset]:
         """Function for reading and loading TFRecords into a tf.data.Dataset.
 
+        Args: None.
+
         Returns:
-            A tf.data.Dataset
+            A tf.data.Dataset instance.
         """
-        ds = tf.data.TFRecordDataset(self.tfrecs_filepath)
-        ds = ds.map(
-            lambda example: tf.io.parse_example(example, ImageNet.TFRECS_FORMAT)
+
+        files = tf.data.Dataset.list_files(self.tfrecs_filepath)
+        ds = files.interleave(
+            tf.data.TFRecordDataset, num_parallel_calls=AUTO, deterministic=False
         )
-        ds = ds.map(lambda example: self.decode_example(example))
+
+        ds = ds.map(self.decode_example, num_parallel_calls=AUTO)
+
+        ds = ds.batch(self.batch_size, drop_remainder=True)
+        ds = ds.prefetch(AUTO)
         return ds
 
-    def _scale_and_center_crop(self, image, h, w, scale_size, final_size):
-        """Resizes image to given scale size and returns a center crop. Aspect
-        ratio is NOT maintained.
+    def color_jitter(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Performs color jitter on the batch. It performs random brightness, hue, saturation,
+        contrast and random left-right flip.
 
         Args:
-            image: tensor of the image
-            h: initial height of image
-            w: initial width of image
-            scale_size: Size of image to scale to
-            final_size: Size of final image
+            image: Batch of images to perform color jitter on.
+            target: Target tensor.
 
         Returns:
-            Tensor of shape (final_size, final_size, 3)
+            Augmented example with batch of images and targets with same dimensions.
         """
-        if w < h and w != scale_size:
-            w, h = tf.cast(scale_size, tf.int64), tf.cast(
-                ((h / w) * scale_size), tf.int64
-            )
-            im = tf.image.resize(image, (w, h))
-        elif h <= w and h != scale_size:
-            w, h = tf.cast(((h / w) * scale_size), tf.int64), tf.cast(
-                scale_size, tf.int64
-            )
-            im = tf.image.resize(image, (w, h))
-        else:
-            im = tf.image.resize(image, (w, h))
-        x = tf.cast((w - final_size) / 2, tf.int64)
-        y = tf.cast((h - final_size) / 2, tf.int64)
-        return im[y : (y + final_size), x : (x + final_size), :]
 
-    def random_sized_crop(self, example, min_area=0.08, max_iter=10):
+        brightness_delta = self.strength * 0.1
+        contrast_lower = 1 - 0.5 * (self.strength / 10.0)
+        contrast_upper = 1 + 0.5 * (self.strength / 10.0)
+        hue_delta = self.strength * 0.05
+        saturation_lower = 1 - 0.5 * (self.strength / 10.0)
+        saturation_upper = (1 - 0.5 * (self.strength / 10.0)) * 5
+
+        aug_images = tf.image.random_brightness(image, brightness_delta)
+        aug_images = tf.image.random_contrast(
+            aug_images, contrast_lower, contrast_upper
+        )
+        aug_images = tf.image.random_hue(aug_images, hue_delta)
+        aug_images = tf.image.random_saturation(
+            aug_images, saturation_lower, saturation_upper
+        )
+
+        return aug_images, target
+    
+    def _inception_style_crop(self, images, labels):
         """
-        Randomly chooses an area and aspect ratio and resizes the image to those
-        values.
+        Applies inception style cropping
 
         Args:
-            example: A dataset example.
-            min_area: Minimum area of image to be used
-            max_iter: Maximum iteration to try before implementing scale and
-                center crop. Randomly genereted width and height must be lower
-                than original width and height before max_iter.
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
 
         Returns:
-            Example of same format as TFRECS_FORMAT
+            Augmented example with batch of images and targets with same dimensions.
+        """
+        # # Get target metrics
+        area_ratio = tf.random.uniform((), minval=0.08, maxval=1.0)
+        
+        aspect_ratio = tf.random.uniform((), minval=3./4., maxval=4./3.)
+        
+        
+        target_area = self.image_size ** 2 * area_ratio
+
+        w = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area * aspect_ratio)), 0, 511), tf.int32)
+        
+        h = tf.cast(tf.clip_by_value(tf.round(tf.sqrt(target_area / aspect_ratio)), 0, 511), tf.int32)
+
+
+        y0s = tf.random.uniform((), minval=0, maxval=self.image_size - h + 1, dtype=tf.int32)
+        x0s = tf.random.uniform((), minval=0, maxval=self.image_size - w + 1, dtype=tf.int32)
+
+        begins = [0, y0s, x0s, 0]
+        sizes =  [self.batch_size, h, w, 3]
+
+        aug_images = tf.slice(images, begins, sizes)
+        aug_images = tf.image.resize(aug_images, (224, 224))
+        
+
+        return aug_images, labels
+
+
+    def _pca_jitter(self, image, target):
+        """
+        Applies PCA jitter to images.
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+        
+        aug_images = tf.cast(image, tf.float32) / 255.
+        alpha = tf.random.normal((self.batch_size,3), stddev=0.1)
+        alpha = tf.stack([alpha, alpha, alpha], axis=1)
+        rgb = tf.math.reduce_sum(alpha * self.eigen_vals * self.eigen_vecs, axis=2)
+        rgb = tf.expand_dims(rgb, axis=1)
+        rgb = tf.expand_dims(rgb, axis=1)
+        
+        aug_images = aug_images + rgb
+        aug_images = aug_images * 255.
+        
+        aug_images = tf.cast(tf.clip_by_value(aug_images, 0, 255), tf.uint8)
+        
+        return aug_images, target
+        
+        
+    
+    
+    def random_flip(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Returns randomly flipped batch of images. Only horizontal flip
+        is available
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
         """
 
-        h, w = tf.cast(example["height"], tf.int64), tf.cast(
-            example["width"], tf.int64
+        aug_images = tf.image.random_flip_left_right(image)
+        return aug_images, target
+
+    def random_rotate(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Returns randomly rotated batch of images.
+
+        Args:
+            image: Batch of images to perform random rotation on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+
+        angles = tf.random.uniform((self.batch_size,)) * (math.pi / 2.0)
+        rotated = tfa.image.rotate(image, angles, fill_value=128.0)
+        return rotated, target
+
+    def random_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """ "
+        Returns random crops of images.
+
+        Args:
+            image: Batch of images to perform random crop on.
+            target: Target tensor.
+
+        Returns:
+            Augmented example with batch of images and targets with same dimensions.
+        """
+
+        cropped = tf.image.random_crop(image, size=(self.batch_size, 320, 320, 3))
+        return cropped, target
+
+    def center_crop(self, image: tf.Tensor, target: tf.Tensor) -> tuple:
+        """
+        Resizes a batch of images to (self.resize_pre_crop, self.resize_pre_crop) and
+        then takes central crop of (self.crop_size, self.crop_size)
+
+        Args:
+            image: Batch of images to perform center crop on.
+            target: Target tensor.
+
+        Returns:
+            Center cropped example with batch of images and targets with same dimensions.
+        """
+        aug_images = tf.image.resize(
+            image, (self.resize_pre_crop, self.resize_pre_crop)
         )
-        area = h * w
-        return_example = False
-        image = example["image"]
-        num_iter = tf.constant(0, dtype=tf.int32)
-        while num_iter <= max_iter:
-            num_iter = tf.math.add(num_iter, 1)
-            final_area = tf.random.uniform(
-                (), minval=min_area, maxval=1, dtype=tf.float32
-            ) * tf.cast(area, tf.float32)
-            aspect_ratio = tf.random.uniform(
-                (), minval=3.0 / 4.0, maxval=4.0 / 3.0, dtype=tf.float32
-            )
-            w_cropped = tf.cast(
-                tf.math.round(tf.math.sqrt(final_area * aspect_ratio)), tf.int64
-            )
-            h_cropped = tf.cast(
-                tf.math.round(tf.math.sqrt(final_area / aspect_ratio)), tf.int64
-            )
-
-            if tf.random.uniform(()) < 0.5:
-                w_cropped, h_cropped = h_cropped, w_cropped
-
-            if h_cropped <= h and w_cropped <= w:
-                return_example = True
-                if h_cropped == h:
-                    y = tf.constant(0, dtype=tf.int64)
-                else:
-                    y = tf.random.uniform(
-                        (), minval=0, maxval=h - h_cropped, dtype=tf.int64
-                    )
-                if w_cropped == w:
-                    x = tf.constant(0, dtype=tf.int64)
-                else:
-                    x = tf.random.uniform(
-                        (), minval=0, maxval=w - w_cropped, dtype=tf.int64
-                    )
-
-                image = image[y : (y + h_cropped), x : x + w_cropped, :]
-                image = tf.image.resize(
-                    image, (self.image_size, self.image_size)
-                )
-                break
-        if return_example:
-            return {
-                "image": image,
-                "height": self.image_size,
-                "width": self.image_size,
-                "filename": example["filename"],
-                "label": example["label"],
-                "synset": example["synset"],
-            }
-
-        image = self._scale_and_center_crop(
-            image, h, w, self.image_size, self.image_size
+        aug_images = tf.image.central_crop(
+            aug_images, float(self.crop_size) / float(self.resize_pre_crop)
         )
-        return {
-            "image": image,
-            "height": self.image_size,
-            "width": self.image_size,
-            "filename": example["filename"],
-            "label": example["label"],
-            "synset": example["synset"],
-        }
+        return aug_images, target
 
-    def clip_example(self, example):
+    def _one_hot_encode_example(self, example: dict) -> tuple:
         """Takes an example having keys 'image' and 'label' and returns example
         with keys 'image' and 'target'. 'target' is one hot encoded.
 
         Args:
-            example: an example having keys 'image' and 'label'
+            example: an example dict having keys 'image' and 'label'.
 
         Returns:
-            example having keys 'image' and 'target'
+            Tuple having structure (image_tensor, targets_tensor).
         """
-        return {
-            "image": example["image"],
-            "target": tf.one_hot(example["label"], self.num_classes),
-        }
+        return (example["image"], tf.one_hot(example["label"], self.num_classes))
 
-    def _randaugment(self, example):
-        """Wrapper for tf vision's RandAugment.distort function which
-        accepts examples as input instead of images. Uses magnitude = 5
-        as per pycls/pycls/datasets/augment.py#L29.
+    def _mixup(self, image, label) -> Tuple:
+        """
+        Function to apply mixup augmentation. To be applied after
+        one hot encoding and before batching.
 
         Args:
-            example: Example having the key 'image'
+            entry1: Entry from first dataset. Should be one hot encoded and batched.
+            entry2: Entry from second dataset. Must be one hot encoded and batched.
 
         Returns:
-            example in which RandAugment has been applied to the image
+            Tuple with same structure as the entries.
         """
-        example['image'] = self.augmenter.distort(example['image'])
-        return example
+        image1, label1 = image, label
+        image2, label2 = tf.reverse(image, axis=[0]), tf.reverse(label, axis=[0])
 
-    def make_dataset(
-        self,
-    ):
+        image1 = tf.cast(image1, tf.float32)
+        image2 = tf.cast(image2, tf.float32)
+
+        alpha = [0.2]
+        dist = tfd.Beta(alpha, alpha)
+        l = dist.sample(1)[0][0]
+
+        img = l * image1 + (1 - l) * image2
+        lab = l * label1 + (1 - l) * label2
+
+        img = tf.cast(img, tf.uint8)
+
+        return img, lab
+
+    def make_dataset(self) -> Type[tf.data.Dataset]:
         """
         Function to apply all preprocessing and augmentations on dataset using
-        dataset.map().
+        tf.data.dataset.map().
+
+        If `augment_fn` argument is not set to the string "default", it should be set to
+        a callable object. That callable must take exactly two arguments: `image` and `target`
+        and must return two values corresponding to the same.
+
+        Args: None.
 
         Returns:
-            Dataset having the final format as follows:
-            {
-                'image' : (self.image_size, self.image_size, 3)
-                'target' : (num_classes,)
-            }
+            tf.data.Dataset instance having the final format as follows:
+            (image, target)
         """
         ds = self._read_tfrecs()
 
-        if self.augment_fn == "default":
-            ds = ds.map(lambda example: self.random_sized_crop(example))
-            if self.randaugment:
-                ds = ds.map(lambda example: self._randaugment(example))
-            #ds = ds.map(lambda example: self.clip_example(example))
+        ds = ds.map(self._one_hot_encode_example, num_parallel_calls=AUTO)
+
+        if self.no_aug:
+            ds = ds.map(lambda image,label: (tf.cast(image, tf.uint8), label), num_parallel_calls=AUTO)
+            return ds
+
+        if self.default_augment:
+            if self.color_jitter:
+                ds = ds.map(self.color_jitter, num_parallel_calls=AUTO)
+
+            ds = ds.map(self._inception_style_crop, num_parallel_calls=AUTO)
+            ds = ds.map(self.random_flip, num_parallel_calls=AUTO)
+            ds = ds.map(self._pca_jitter, num_parallel_calls=AUTO)
+            
+            if self.mixup:
+                ds = ds.map(self._mixup, num_parallel_calls=AUTO)
+
+        elif self.val_augment:
+            ds = ds.map(self.center_crop, num_parallel_calls=AUTO)
 
         else:
-            ds = ds.map(lambda example: self.augment_fn(example))
+            ds = ds.map(self.augment_fn, num_parallel_calls=AUTO)
 
         return ds
