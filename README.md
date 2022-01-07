@@ -19,6 +19,7 @@ This implementation of RegNet-Y is my project for Google Summer of Code 2021 wit
 - Fine-tuning: Models can be fine-tuned using gradual unfreezing and offer more granularity by using the released checkpoints.
 - Modular and reusable: Every part of the architecture is implemented by subclassing `tf.keras.Model`. This makes the individual parts of the models highly reusable. 
 - Trained on ImageNet-1k: Models in this repository are trained on ImageNet-1k and can be used for inference out-of-the box. These pretrained models are available on [TFHub](https://tfhub.dev/adityakane2001/collections/regnety/1) and thus can be easily used with `hub.KerasLayer` and `hub.load`.
+- Raw checkpoints and tflite models are available in the [dev branch](https://github.com/AdityaKane2001/regnety/tree/dev/savedmodels).
 
 ## Table of contents
 
