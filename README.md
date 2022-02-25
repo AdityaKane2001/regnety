@@ -6,6 +6,11 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 
 <img src="https://raw.githubusercontent.com/AdityaKane2001/regnety/main/images/regnetys.png"> 
 
+
+## Announcement
+
+RegNets are now available in `tf.keras.applications`! Chekc them out [here](https://www.tensorflow.org/api_docs/python/tf/keras/applications/regnet). This repository is no longer maintained. 
+
 ## About this repository
 
 This implementation of RegNet-Y is my project for Google Summer of Code 2021 with TensorFlow<sup>[1]</sup>. 
@@ -145,14 +150,14 @@ model.fit(...)
 
 ## What's next?
 
-This project is being actively worked on and developed. If you have any suggestions, feel free to open an issue or start a PR.  Following is the list of things to be done in near future. 
+If you have any suggestions, feel free to open an issue or start a PR.  Following is the list of things to be done in near future. 
 
 
-- [ ] Improve accuracy of the models.
-- [ ] Convert existing models to TFLite.
-- [ ] Implement and train more variants of RegNetY.
-- [ ] Training models using noisy student method.
-- [ ] Implement and train RegNet-{X, Z}
+- [x] Improve accuracy of the models.
+- [x] Convert existing models to TFLite.
+- [x] Implement and train more variants of RegNetY.
+- [] Training models using noisy student method.
+- [x] Implement and train RegNet-{X, Y}
 
 
 ## Acknowledgement
