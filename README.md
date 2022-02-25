@@ -9,7 +9,7 @@ TensorFlow 2.x implementation of RegNet-Y from the paper "[Designing Network Des
 
 ## Announcement
 
-RegNets are now available in `tf.keras.applications`! Chekc them out [here](https://www.tensorflow.org/api_docs/python/tf/keras/applications/regnet). This repository is no longer maintained. 
+RegNets are now available in `tf.keras.applications`! Check them out [here](https://www.tensorflow.org/api_docs/python/tf/keras/applications/regnet). This repository is no longer maintained. 
 
 ## About this repository
 
