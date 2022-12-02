@@ -156,7 +156,7 @@ If you have any suggestions, feel free to open an issue or start a PR.  Followin
 - [x] Improve accuracy of the models.
 - [x] Convert existing models to TFLite.
 - [x] Implement and train more variants of RegNetY.
-- [] Training models using noisy student method.
+- [ ] Training models using noisy student method.
 - [x] Implement and train RegNet-{X, Y}
 
 
