@@ -117,18 +117,18 @@ def top1error(y_true, y_pred):
 
 
 def make_model(flops, train_cfg):
-    optim = get_optimizer(train_cfg)
-    model = regnety.models.model.RegNetY(flops)
-    model.compile(
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
-        optimizer=optim,
-        metrics=[
-            tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
-            tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
-        ],
-    )
+        optim = get_optimizer(train_cfg)
+        model = regnety.models.model.RegNetY(flops)
+        model.compile(
+            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
+            optimizer=optim,
+            metrics=[
+                tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
+                tf.keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
+            ],
+        )
 
-    return model
+        return model
 
 
 def connect_to_tpu(tpu_address: str = None):
